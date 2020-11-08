@@ -53,49 +53,18 @@ namespace RepoMan
                     .Select(pr => pr.Number)
                     .ToHashSet();
 
-                var timer = Stopwatch.StartNew();
-                var subTimer = new Stopwatch();
-                var tasks = new List<Task<PullRequest>>(prIds.Count);
-                foreach (var q in prIds)
-                {
-                    subTimer.Start();
-                    var t = client.PullRequest.Get(owner, repo, q);
-                    subTimer.Stop();
-                    tasks.Add(t);
-                }
-                
-                Console.WriteLine($"Sub Timer: {subTimer.ElapsedMilliseconds:N0}");
-                var avg = (double) subTimer.ElapsedMilliseconds / tasks.Count;
-                Console.WriteLine($"Average per task created: {avg:N3}");
-                
-                // var deepPrQuery = prIds
-                //     .Select(async nbr => await client.PullRequest.Get(owner, repo, nbr))
-                //     .ToList();
-                timer.Stop();
-                Console.WriteLine($"Query should be async: {timer.ElapsedMilliseconds:N0}");
-
-                var maybeCompleted = tasks //deepPrQuery
-                    .Where(t => t.IsCompleted && !t.IsFaulted)
+                var deepPrQuery = prIds
+                    .Select(nbr => client.PullRequest.Get(owner, repo, nbr))
                     .ToList();
-
-                timer = Stopwatch.StartNew();
-                await Task.WhenAll(tasks);
-                timer.Stop();
-                Console.WriteLine($"await Task.WhenAll: {timer.ElapsedMilliseconds:N0}");
+                
+                await Task.WhenAll(deepPrQuery);
+                
+                // Filter out failed tasks from successful tasks...
+                
+                // Write them down?
                 
                 var target = Path.Combine(_scratchDir, "nyt-scraper-closed-prs.json");
                 var serialized = JsonConvert.SerializeObject(closedPrs, Formatting.Indented);
-                
-                // var foo = await client.
-
-                // var withComments = pullRequests.Where(pr => pr.Comments > 0).ToList();
-
-
-                
-                // await File.WriteAllTextAsync(target, serialized);
-
-                // PR 333 has 4 comments, and is titled "Update Readme to include dependency list" but the Comments count is 0.
-
             }
             catch (Exception e)
             {
