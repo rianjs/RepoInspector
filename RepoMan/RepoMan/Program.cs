@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -51,20 +49,31 @@ namespace RepoMan
                 var closedPrs = await client.PullRequest.GetAllForRepository(owner, repo, prOpts);
                 var prIds = closedPrs
                     .Select(pr => pr.Number)
-                    .ToHashSet();
+                    .Distinct()
+                    .OrderByDescending(id => id)
+                    .Take(5)
+                    .ToList();
 
                 var deepPrQuery = prIds
                     .Select(nbr => client.PullRequest.Get(owner, repo, nbr))
                     .ToList();
                 
                 await Task.WhenAll(deepPrQuery);
+
+                var success = deepPrQuery
+                    .Where(t => t.IsCompletedSuccessfully)
+                    .Select(t => t.Result)
+                    .ToList();
+
+                var fail = deepPrQuery
+                    .Where(t => t.IsFaulted)
+                    .ToList();
                 
-                // Filter out failed tasks from successful tasks...
-                
-                // Write them down?
-                
-                var target = Path.Combine(_scratchDir, "nyt-scraper-closed-prs.json");
-                var serialized = JsonConvert.SerializeObject(closedPrs, Formatting.Indented);
+                var shallowResult = Path.Combine(_scratchDir, "shallow-prs.json");
+                var shallowWriteTask = File.WriteAllTextAsync(shallowResult, JsonConvert.SerializeObject(closedPrs, Formatting.Indented));
+                var successResult = Path.Combine(_scratchDir, "deep-prs.json");
+                var deepWriteTask = File.WriteAllTextAsync(successResult, JsonConvert.SerializeObject(success, Formatting.Indented));
+                await Task.WhenAll(shallowWriteTask, deepWriteTask);
             }
             catch (Exception e)
             {
