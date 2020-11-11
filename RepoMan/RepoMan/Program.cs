@@ -45,17 +45,16 @@ namespace RepoMan
                 var prOpts = new PullRequestRequest
                 {
                     State = ItemStateFilter.Closed,
+                    // We should be able to do a binary search on the resultant list for the PR that has a last comment 
+                    SortProperty = PullRequestSort.Popularity,
                 };
                 var closedPrs = await client.PullRequest.GetAllForRepository(owner, repo, prOpts);
-                var prIds = closedPrs
-                    .Select(pr => pr.Number)
-                    .Distinct()
-                    .OrderByDescending(id => id)
-                    .Take(5)
-                    .ToList();
+                // var derp = await client.PullRequest.Review.GetAllComments(owner, repo, closedPrs.First().Number)
+                var foo = closedPrs.First();
 
-                var deepPrQuery = prIds
-                    .Select(nbr => client.PullRequest.Get(owner, repo, nbr))
+                var deepPrQuery = closedPrs
+                    .Take(5)
+                    .Select(pr => client.Issue.Comment.GetAllForIssue(owner, repo, pr.Number))
                     .ToList();
                 
                 await Task.WhenAll(deepPrQuery);
@@ -64,10 +63,20 @@ namespace RepoMan
                     .Where(t => t.IsCompletedSuccessfully)
                     .Select(t => t.Result)
                     .ToList();
-
+                
                 var fail = deepPrQuery
                     .Where(t => t.IsFaulted)
                     .ToList();
+                
+                // PR statistics of interest:
+                // Approval count per PR
+                // Comment count per PR
+                // Comment complexity per PR (i.e. how robust was the dialog?)
+                // Comments per line changed
+                
+                // Other
+                // Commits merged directly to master
+                
                 
                 var shallowResult = Path.Combine(_scratchDir, "shallow-prs.json");
                 var shallowWriteTask = File.WriteAllTextAsync(shallowResult, JsonConvert.SerializeObject(closedPrs, Formatting.Indented));
