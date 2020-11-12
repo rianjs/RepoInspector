@@ -8,7 +8,7 @@ namespace RepoMan
     public class RepositoryDetails
     {
         public long Id { get; set; }
-        public string Url { get; set; }
+        public string HtmlUrl { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
@@ -24,54 +24,170 @@ namespace RepoMan
         public string HtmlUrl { get; set; }
         public int Number { get; set; }
         public User Submitter { get; set; }
-        
-        /// <summary>
-        /// The top-level comments associated with a pull request
-        /// </summary>
-        public List<Comment> Comments { get; set; }
-        
-        /// <summary>
-        /// Comments associated with clicking the button in the approve/request changes workflow
-        /// </summary>
-        public List<Comment> ReviewComments { get; } = new List<Comment>();
-        
-        /// <summary>
-        /// Comments on specific parts of the diff
-        /// </summary>
-        public List<Comment> DiffComments { get; } = new List<Comment>();
-        
-        /// <summary>
-        /// Comments on specific commits
-        /// </summary>
-        public List<Comment> CommitComments { get; } = new List<Comment>();
-        
         /// <summary>
         /// Open, closed, merged, etc.
         /// </summary>
         public string State { get; set; }
+        public DateTimeOffset OpenedAt { get; set; }
+        public DateTimeOffset UpdatedAt { get; set; }
+        /// <summary>
+        /// If the pull request hasn't been closed, this will have a value of DateTimeOffset.MaxValue
+        /// </summary>
+        public DateTimeOffset ClosedAt { get; set; }
+        /// <summary>
+        /// If the pull request hasn't been merged, this will have a value of DateTimeOffset.MaxValue
+        /// </summary>
+        public DateTimeOffset MergedAt { get; set; }
         
-        public DateTimeOffset OpenTimestamp { get; set; }
-        public DateTimeOffset CloseTimestamp { get; set; }
-        public DateTimeOffset MergeTimestamp { get; set; }
+        public List<Review> Reviews { get; set; } = new List<Review>();
         
-        public void WithPullRequestReviewComments(IList<PullRequestReviewComment> prReviewComments)
+        /// <summary>
+        /// The top-level comments associated with a pull request
+        /// </summary>
+        public List<Comment> Comments { get; set; } = new List<Comment>();
+        
+        /// <summary>
+        /// Comments associated with clicking the button in the approve/request changes workflow
+        /// </summary>
+        public List<Comment> ReviewComments { get; set; } = new List<Comment>();
+        
+        /// <summary>
+        /// Comments on specific parts of the diff
+        /// </summary>
+        public List<Comment> DiffComments { get; set; } = new List<Comment>();
+        
+        /// <summary>
+        /// Comments on specific commits
+        /// </summary>
+        public List<Comment> CommitComments { get; set; } = new List<Comment>();
+        
+        public PullRequestDetails(){}
+
+        public PullRequestDetails(PullRequest pullRequest)
         {
-            var reviewCommentsQuery = prReviewComments.Select(c => new Comment
+            if (pullRequest is null)
             {
-                Id = c.Id,
-                HtmlUrl = c.HtmlUrl,
-                Text = c.Body,
-                Timestamp = c.CreatedAt,
-                UpdatedAt = c.UpdatedAt,
+                throw new ArgumentNullException(nameof(pullRequest));
+            }
+            
+            Id = pullRequest.Id;
+            Number = pullRequest.Number;
+            HtmlUrl = pullRequest.HtmlUrl;
+            Submitter = new User
+            {
+                Id = pullRequest.User.Id,
+                Login = pullRequest.User.Login,
+                HtmlUrl = pullRequest.User.HtmlUrl,
+            };
+            State = pullRequest.State.ToString();
+            OpenedAt = pullRequest.CreatedAt;
+            UpdatedAt = pullRequest.UpdatedAt;
+            ClosedAt = pullRequest.ClosedAt ?? DateTimeOffset.MaxValue;
+            MergedAt = pullRequest.MergedAt ?? DateTimeOffset.MaxValue;
+        }
+    }
+
+    public static class PullRequestDetailsExtensions
+    {
+        /// <summary>
+        /// The comments associated with a line of code, or range of lines of code.
+        /// </summary>
+        /// <param name="prDetails"></param>
+        /// <param name="prReviewComments"></param>
+        /// <returns></returns>
+        public static PullRequestDetails WithDiffComments(
+            this PullRequestDetails prDetails,
+            IEnumerable<PullRequestReviewComment> prReviewComments)
+        {
+            prDetails.DiffComments.AddRange(prReviewComments.Select(GetComment));
+            return prDetails;
+        }
+        
+        private static Comment GetComment(PullRequestReviewComment prComment)
+        {
+            return new Comment
+            {
+                Id = prComment.Id,
+                HtmlUrl = prComment.HtmlUrl,
+                Text = prComment.Body,
+                Timestamp = prComment.CreatedAt,
+                UpdatedAt = prComment.UpdatedAt,
                 User = new User
                 {
-                    Id = c.User.Id,
-                    Login = c.User.Login,
+                    Id = prComment.User.Id,
+                    Login = prComment.User.Login,
                 },
-            });
-            
-            ReviewComments.AddRange(reviewCommentsQuery);
+            };
         }
+
+        /// <summary>
+        /// The comments associated with when someone clicks the Approve or Changes Requested button in the approval workflow 
+        /// </summary>
+        /// <param name="prDetails"></param>
+        /// <param name="stateTransitionComments"></param>
+        /// <returns></returns>
+        public static PullRequestDetails WithStateTransitionComments(
+            this PullRequestDetails prDetails,
+            IEnumerable<PullRequestReview> stateTransitionComments)
+        {
+            prDetails.ReviewComments.AddRange(stateTransitionComments.Select(GetComment));
+            return prDetails;
+        }
+        
+        private static Comment GetComment(PullRequestReview prReview)
+        {
+            return new Comment
+            {
+                Id = prReview.Id,
+                HtmlUrl = prReview.HtmlUrl,
+                Text = prReview.Body,
+                Timestamp = prReview.SubmittedAt,
+                UpdatedAt = DateTimeOffset.MinValue,
+                User = new User
+                {
+                    Id = prReview.User.Id,
+                    Login = prReview.User.Login,
+                },
+            };
+        }
+        
+        /// <summary>
+        /// The top-level comments on a pull request that are not associated with specific commits, lines of code, etc.
+        /// </summary>
+        /// <param name="generalPrComments"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public static PullRequestDetails WithDiscussionComments(this PullRequestDetails prDetails, IReadOnlyList<IssueComment> generalPrComments)
+        {
+            prDetails.ReviewComments.AddRange(generalPrComments.Select(GetComment));
+            return prDetails;
+        }
+
+        private static Comment GetComment(IssueComment issueComment)
+        {
+            return new Comment
+            {
+                Id = issueComment.Id,
+                HtmlUrl = issueComment.HtmlUrl,
+                Text = issueComment.Body,
+                Timestamp = issueComment.CreatedAt,
+                UpdatedAt = issueComment.UpdatedAt ?? DateTimeOffset.MinValue,
+                User = new User
+                {
+                    Id = issueComment.User.Id,
+                    Login = issueComment.User.Login,
+                },
+            };
+        }
+    }
+
+    public class Review
+    {
+        public long Id { get; set; }
+        public string HtmlUrl { get; set; }
+        public Comment Comment { get; set; }
+        public string ReviewState { get; set; }
+        public DateTimeOffset SubmittedAt { get; set; }
     }
 
     public class Comment
@@ -88,5 +204,6 @@ namespace RepoMan
     {
         public long Id { get; set; }
         public string Login { get; set; }
+        public string HtmlUrl { get; set; }
     }
 }

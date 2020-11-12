@@ -35,43 +35,41 @@ namespace RepoMan
 
         private static async Task Debug(GitHubClient client)
         {
+            var owner = "alex";
+            var repo = "nyt-2020-election-scraper";
             const int number = 368;
+            var prReader = new GitHubRepoPullRequestReader(owner, repo, client);
+            
             try
             {
-                var owner = "alex";
-                var repo = "nyt-2020-election-scraper";
-                var prOpts = new PullRequestRequest
-                {
-                    State = ItemStateFilter.Closed,    // Ignore anything that isn't settled
-                    SortProperty = PullRequestSort.Created,
-                    SortDirection = SortDirection.Ascending,
-                };
-                var closedPrs = (await client.PullRequest.GetAllForRepository(owner, repo, prOpts))
-                    .ToDictionary(pr => pr.Number);
-
-                var aggregate = new Dictionary<int, PullRequestDetails>(closedPrs.Count);
-                
                 // https://github.com/alex/nyt-2020-election-scraper/pull/368 has comments, diff comments, and approvals with comments
-                var diffReviewComments = await client.PullRequest.ReviewComment.GetAll(owner, repo, number);
-                File.WriteAllText(CreateFullPath($"PullRequest-ReviewComment-GetAll-{number}.json"), Serialize(diffReviewComments));
+                var allClosedPrs = await prReader.GetPullRequests(ItemStateFilter.Closed);
+                var threeSixEight = allClosedPrs.Single(pr => pr.Number == number);
 
-                var getAllForRepo = closedPrs[number];
-                File.WriteAllText(CreateFullPath($"PullRequest-GetAllForRepository-{number}.json"), Serialize(getAllForRepo));
-                
-                // State transitions (APPROVED), and comments associated with them
-                var approvalSummaries = await client.PullRequest.Review.GetAll(owner, repo, number);
-                File.WriteAllText(CreateFullPath($"PullRequest-Review-GetAll-{number}.json"), Serialize(approvalSummaries));
-
-                // These are the comments on the PR in general, not associated with an approval, or with a commit, or with something in the diff
-                var generalPRComments = await client.Issue.Comment.GetAllForIssue(owner, repo, number);
-                File.WriteAllText(CreateFullPath($"Client-Issue-Comment-GetAllForIssue-{number}.json"), Serialize(generalPRComments));
-
-                var pullRequestDetails = new PullRequestDetails
-                {
-
-                };
-
-                // MISSING: Commit comments -- comments on a specific commit -- I haven't found a PR with a comment on a commit yet
+                var foo = await prReader.UpdateCommentsGraphAsync(threeSixEight);
+                    
+                // var diffReviewComments = await client.PullRequest.ReviewComment.GetAll(owner, repo, number);
+                // // File.WriteAllText(CreateFullPath($"PullRequest-ReviewComment-GetAll-{number}.json"), Serialize(diffReviewComments));
+                //
+                //
+                // var getAllForRepo = closedPrs[number];
+                // File.WriteAllText(CreateFullPath($"PullRequest-GetAllForRepository-{number}.json"), Serialize(getAllForRepo));
+                //
+                // // State transitions (APPROVED), and comments associated with them
+                // var approvalSummaries = await client.PullRequest.Review.GetAll(owner, repo, number);
+                // // File.WriteAllText(CreateFullPath($"PullRequest-Review-GetAll-{number}.json"), Serialize(approvalSummaries));
+                //
+                // // These are the comments on the PR in general, not associated with an approval, or with a commit, or with something in the diff
+                // var generalPrComments = await client.Issue.Comment.GetAllForIssue(owner, repo, number);
+                // // File.WriteAllText(CreateFullPath($"Client-Issue-Comment-GetAllForIssue-{number}.json"), Serialize(generalPRComments));
+                //
+                // var pullRequestDetails = new PullRequestDetails(getAllForRepo)
+                //     .WithDiffComments(diffReviewComments)
+                //     .WithStateTransitionComments(approvalSummaries)
+                //     .WithDiscussionComments(generalPrComments);
+                //
+                // var asUsefulPrs = closedPrs
+                //     .Select(closed => new PullRequestDetails(closed));
 
                 // PR statistics of interest:
                 // Approval count per PR
@@ -117,16 +115,6 @@ namespace RepoMan
             }
 
             return Path.Combine(path, "scratch");
-            //var repoRoot = Enumerable.Range(0, 5)
-            //    .Select(path => Directory.GetParent(path))
-            //    .LastOrDefault() ?? throw new ArgumentNullException();
-
-
-            //var userDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            //var dev = Path.Combine(userDir, "dev");
-            //var thisRepo = Path.Combine(dev, "RepoMan");
-            //var scratch = Path.Combine(thisRepo, "scratch");
-            //return scratch;
         }
 
         public static string Serialize(object o)
