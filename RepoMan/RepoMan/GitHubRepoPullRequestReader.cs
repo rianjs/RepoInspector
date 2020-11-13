@@ -76,14 +76,11 @@ namespace RepoMan
             var generalPrCommentsTask = _client.Issue.Comment.GetAllForIssue(_repoOwner, _repoName, pullRequest.Number);
             
             await Task.WhenAll(diffReviewCommentsTask, approvalSummariesTask, generalPrCommentsTask);
-            
-            var foo = approvalSummariesTask.Result
-                .Select(a => a.State)
-            
+
             pullRequest = pullRequest
                 .WithDiffComments(diffReviewCommentsTask.Result)
-                .WithStateTransitionComments(approvalSummariesTask.Result)
-                .WithDiscussionComments(generalPrCommentsTask.Result);
+                .WithDiscussionComments(generalPrCommentsTask.Result)
+                .WithStateTransitionComments(approvalSummariesTask.Result);
 
             return pullRequest;
         }

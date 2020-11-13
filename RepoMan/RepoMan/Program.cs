@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -45,8 +46,9 @@ namespace RepoMan
                 // https://github.com/alex/nyt-2020-election-scraper/pull/368 has comments, diff comments, and approvals with comments
                 var allClosedPrs = await prReader.GetPullRequests(ItemStateFilter.Closed);
                 var threeSixEight = allClosedPrs.Single(pr => pr.Number == number);
-
                 var foo = await prReader.UpdateCommentsGraphAsync(threeSixEight);
+                
+                File.WriteAllText(CreateFullPath($"Full-Object-Graph-{number}.json"), Serialize(foo));
                     
                 // var diffReviewComments = await client.PullRequest.ReviewComment.GetAll(owner, repo, number);
                 // // File.WriteAllText(CreateFullPath($"PullRequest-ReviewComment-GetAll-{number}.json"), Serialize(diffReviewComments));

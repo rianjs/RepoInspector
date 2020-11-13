@@ -39,8 +39,6 @@ namespace RepoMan
         /// </summary>
         public DateTimeOffset MergedAt { get; set; }
         
-        public List<Review> Reviews { get; set; } = new List<Review>();
-        
         /// <summary>
         /// The top-level comments associated with a pull request
         /// </summary>
@@ -110,7 +108,7 @@ namespace RepoMan
                 Id = prComment.Id,
                 HtmlUrl = prComment.HtmlUrl,
                 Text = prComment.Body,
-                Timestamp = prComment.CreatedAt,
+                CreatedAt = prComment.CreatedAt,
                 UpdatedAt = prComment.UpdatedAt,
                 User = new User
                 {
@@ -128,9 +126,9 @@ namespace RepoMan
         /// <returns></returns>
         public static PullRequestDetails WithStateTransitionComments(
             this PullRequestDetails prDetails,
-            IEnumerable<PullRequestReview> stateTransitionComments)
+            IEnumerable<PullRequestReview> commentsForStateTransition)
         {
-            prDetails.ReviewComments.AddRange(stateTransitionComments.Select(GetComment));
+            prDetails.ReviewComments.AddRange(commentsForStateTransition.Select(GetComment));
             return prDetails;
         }
         
@@ -141,14 +139,25 @@ namespace RepoMan
                 Id = prReview.Id,
                 HtmlUrl = prReview.HtmlUrl,
                 Text = prReview.Body,
-                Timestamp = prReview.SubmittedAt,
+                CreatedAt = prReview.SubmittedAt,
                 UpdatedAt = DateTimeOffset.MinValue,
                 User = new User
                 {
                     Id = prReview.User.Id,
                     Login = prReview.User.Login,
                 },
+                ReviewState = GetReviewState(prReview.State),
             };
+        }
+
+        private static string GetReviewState(StringEnum<PullRequestReviewState> state)
+        {
+            if (state == PullRequestReviewState.Commented)
+            {
+                return null;
+            }
+
+            return state.StringValue;
         }
         
         /// <summary>
@@ -170,7 +179,7 @@ namespace RepoMan
                 Id = issueComment.Id,
                 HtmlUrl = issueComment.HtmlUrl,
                 Text = issueComment.Body,
-                Timestamp = issueComment.CreatedAt,
+                CreatedAt = issueComment.CreatedAt,
                 UpdatedAt = issueComment.UpdatedAt ?? DateTimeOffset.MinValue,
                 User = new User
                 {
@@ -181,22 +190,18 @@ namespace RepoMan
         }
     }
 
-    public class Review
-    {
-        public long Id { get; set; }
-        public string HtmlUrl { get; set; }
-        public Comment Comment { get; set; }
-        public string ReviewState { get; set; }
-        public DateTimeOffset SubmittedAt { get; set; }
-    }
-
     public class Comment
     {
         public long Id { get; set; }
         public User User { get; set; }
         public string HtmlUrl { get; set; }
-        public DateTimeOffset Timestamp { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset UpdatedAt { get; set; }
+        
+        /// <summary>
+        /// Null, unless the comment is associated with a review comment where someone has approved it, or requested changes or whatever
+        /// </summary>
+        public string ReviewState { get; set; }
         public string Text { get; set; }
     }
 
