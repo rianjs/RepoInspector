@@ -64,7 +64,7 @@ namespace RepoMan
         /// </summary>
         /// <param name="pullRequest"></param>
         /// <returns></returns>
-        public async Task FillCommentGraphAsync(PullRequestDetails pullRequest)
+        public async Task<bool> TryFillCommentGraphAsync(PullRequestDetails pullRequest)
         {
             // Comments on specific lines and ranges of lines in the changed code
             var diffReviewCommentsTask = _client.PullRequest.ReviewComment.GetAll(_repoOwner, _repoName, pullRequest.Number);
@@ -76,11 +76,18 @@ namespace RepoMan
             var generalPrCommentsTask = _client.Issue.Comment.GetAllForIssue(_repoOwner, _repoName, pullRequest.Number);
             
             await Task.WhenAll(diffReviewCommentsTask, approvalSummariesTask, generalPrCommentsTask);
+            
+            if (diffReviewCommentsTask.IsFaulted || generalPrCommentsTask.IsFaulted || approvalSummariesTask.IsFaulted)
+            {
+                return false;
+            }
 
             pullRequest.UpdateDiffComments(diffReviewCommentsTask.Result);
             pullRequest.UpdateDiscussionComments(generalPrCommentsTask.Result);
             pullRequest.UpdateStateTransitionComments(approvalSummariesTask.Result);
             pullRequest.IsFullyInterrogated = true;
+
+            return true;
         }
     }
 }

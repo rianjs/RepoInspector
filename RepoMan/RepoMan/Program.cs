@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 using Octokit;
 
 namespace RepoMan
@@ -15,6 +16,7 @@ namespace RepoMan
         private static readonly string _tokenPath = Path.Combine(GetScratchDirectory(), "repoman-pan.secret");
         private static readonly string _scratchDir = GetScratchDirectory();
         private static readonly string _token = File.ReadAllText(_tokenPath).Trim();
+        private static readonly JsonSerializerSettings _jsonSerializerSettings = GetDebugJsonSerializerSettings();
 
         static async Task Main(string[] args)
         {
@@ -40,13 +42,32 @@ namespace RepoMan
             var repo = "nyt-2020-election-scraper";
             const int number = 368;
             var prReader = new GitHubRepoPullRequestReader(owner, repo, client);
+
+            var cachePath = Path.Combine(_scratchDir, "pull-requests.json");
+            var fs = new Filesystem.Filesystem();
+            
+            var repoHistoryMgr = await FilesystemRepoHistoryManager.CreateAsync(fs, cachePath, _jsonSerializerSettings);
             
             try
             {
+                // Read the cache
+                // Find the elements that haven't been fully populated
+                // Populate them until we can't anymore
+                // Write down the result
+                
                 // https://github.com/alex/nyt-2020-election-scraper/pull/368 has comments, diff comments, and approvals with comments
                 var allClosedPrs = await prReader.GetPullRequests(ItemStateFilter.Closed);
-                var threeSixEight = allClosedPrs.Single(pr => pr.Number == number);
-                await prReader.FillCommentGraphAsync(threeSixEight);
+
+                foreach (var pr in allClosedPrs)
+                {
+                    var succeeded = await prReader.TryFillCommentGraphAsync(pr);
+                    if (!succeeded)
+                    {
+                        break;
+                    }
+
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+                }
                 
                 // PR statistics of interest:
                 // Approval count per PR
@@ -99,5 +120,20 @@ namespace RepoMan
 
         public static string CreateFullPath(string fileName)
             => Path.Combine(_scratchDir, fileName);
+        
+        private static JsonSerializerSettings GetDebugJsonSerializerSettings()
+        {
+            return new JsonSerializerSettings
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                //For demo purposes:
+                DefaultValueHandling = DefaultValueHandling.Include,
+                Formatting = Formatting.Indented,
+                //Otherwise:
+                // DefaultValueHandling = DefaultValueHandling.Ignore,
+                DateFormatHandling = DateFormatHandling.IsoDateFormat,
+                Converters = new List<JsonConverter> { new StringEnumConverter(), },
+            };
+        }
     }
 }

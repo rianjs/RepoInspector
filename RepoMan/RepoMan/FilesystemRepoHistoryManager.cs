@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -71,7 +70,7 @@ namespace RepoMan
         }
 
         /// <summary>
-        /// Async and thread-safe update for recently-imported pull requests. Persists the updated collection to its home when the update is complete
+        /// Async-await and thread-safe update for recently-imported pull requests. Persists the updated collection to its home.
         /// </summary>
         /// <param name="imports"></param>
         /// <returns></returns>
