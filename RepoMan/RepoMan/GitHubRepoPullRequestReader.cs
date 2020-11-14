@@ -64,7 +64,7 @@ namespace RepoMan
         /// </summary>
         /// <param name="pullRequest"></param>
         /// <returns></returns>
-        public async Task<PullRequestDetails> UpdateCommentsGraphAsync(PullRequestDetails pullRequest)
+        public async Task FillCommentGraphAsync(PullRequestDetails pullRequest)
         {
             // Comments on specific lines and ranges of lines in the changed code
             var diffReviewCommentsTask = _client.PullRequest.ReviewComment.GetAll(_repoOwner, _repoName, pullRequest.Number);
@@ -77,12 +77,9 @@ namespace RepoMan
             
             await Task.WhenAll(diffReviewCommentsTask, approvalSummariesTask, generalPrCommentsTask);
 
-            pullRequest = pullRequest
-                .WithDiffComments(diffReviewCommentsTask.Result)
-                .WithDiscussionComments(generalPrCommentsTask.Result)
-                .WithStateTransitionComments(approvalSummariesTask.Result);
-
-            return pullRequest;
+            pullRequest.UpdateDiffComments(diffReviewCommentsTask.Result);
+            pullRequest.UpdateDiscussionComments(generalPrCommentsTask.Result);
+            pullRequest.UpdateStateTransitionComments(approvalSummariesTask.Result);
         }
     }
 }

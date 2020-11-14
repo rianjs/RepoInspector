@@ -46,33 +46,8 @@ namespace RepoMan
                 // https://github.com/alex/nyt-2020-election-scraper/pull/368 has comments, diff comments, and approvals with comments
                 var allClosedPrs = await prReader.GetPullRequests(ItemStateFilter.Closed);
                 var threeSixEight = allClosedPrs.Single(pr => pr.Number == number);
-                var foo = await prReader.UpdateCommentsGraphAsync(threeSixEight);
+                await prReader.FillCommentGraphAsync(threeSixEight);
                 
-                File.WriteAllText(CreateFullPath($"Full-Object-Graph-{number}.json"), Serialize(foo));
-                    
-                // var diffReviewComments = await client.PullRequest.ReviewComment.GetAll(owner, repo, number);
-                // // File.WriteAllText(CreateFullPath($"PullRequest-ReviewComment-GetAll-{number}.json"), Serialize(diffReviewComments));
-                //
-                //
-                // var getAllForRepo = closedPrs[number];
-                // File.WriteAllText(CreateFullPath($"PullRequest-GetAllForRepository-{number}.json"), Serialize(getAllForRepo));
-                //
-                // // State transitions (APPROVED), and comments associated with them
-                // var approvalSummaries = await client.PullRequest.Review.GetAll(owner, repo, number);
-                // // File.WriteAllText(CreateFullPath($"PullRequest-Review-GetAll-{number}.json"), Serialize(approvalSummaries));
-                //
-                // // These are the comments on the PR in general, not associated with an approval, or with a commit, or with something in the diff
-                // var generalPrComments = await client.Issue.Comment.GetAllForIssue(owner, repo, number);
-                // // File.WriteAllText(CreateFullPath($"Client-Issue-Comment-GetAllForIssue-{number}.json"), Serialize(generalPRComments));
-                //
-                // var pullRequestDetails = new PullRequestDetails(getAllForRepo)
-                //     .WithDiffComments(diffReviewComments)
-                //     .WithStateTransitionComments(approvalSummaries)
-                //     .WithDiscussionComments(generalPrComments);
-                //
-                // var asUsefulPrs = closedPrs
-                //     .Select(closed => new PullRequestDetails(closed));
-
                 // PR statistics of interest:
                 // Approval count per PR
                 // Comment count per PR

@@ -83,22 +83,16 @@ namespace RepoMan
             ClosedAt = pullRequest.ClosedAt ?? DateTimeOffset.MaxValue;
             MergedAt = pullRequest.MergedAt ?? DateTimeOffset.MaxValue;
         }
-    }
-
-    public static class PullRequestDetailsExtensions
-    {
+        
         /// <summary>
         /// The comments associated with a line of code, or range of lines of code.
         /// </summary>
         /// <param name="prDetails"></param>
         /// <param name="prReviewComments"></param>
         /// <returns></returns>
-        public static PullRequestDetails WithDiffComments(
-            this PullRequestDetails prDetails,
-            IEnumerable<PullRequestReviewComment> prReviewComments)
+        public void UpdateDiffComments(IEnumerable<PullRequestReviewComment> prReviewComments)
         {
-            prDetails.DiffComments.AddRange(prReviewComments.Select(GetComment));
-            return prDetails;
+            DiffComments.AddRange(prReviewComments.Select(GetComment));
         }
         
         private static Comment GetComment(PullRequestReviewComment prComment)
@@ -117,19 +111,16 @@ namespace RepoMan
                 },
             };
         }
-
+        
         /// <summary>
         /// The comments associated with when someone clicks the Approve or Changes Requested button in the approval workflow 
         /// </summary>
         /// <param name="prDetails"></param>
         /// <param name="stateTransitionComments"></param>
         /// <returns></returns>
-        public static PullRequestDetails WithStateTransitionComments(
-            this PullRequestDetails prDetails,
-            IEnumerable<PullRequestReview> commentsForStateTransition)
+        public void UpdateStateTransitionComments(IEnumerable<PullRequestReview> commentsForStateTransition)
         {
-            prDetails.ReviewComments.AddRange(commentsForStateTransition.Select(GetComment));
-            return prDetails;
+            ReviewComments.AddRange(commentsForStateTransition.Select(GetComment));
         }
         
         private static Comment GetComment(PullRequestReview prReview)
@@ -149,7 +140,7 @@ namespace RepoMan
                 ReviewState = GetReviewState(prReview.State),
             };
         }
-
+        
         private static string GetReviewState(StringEnum<PullRequestReviewState> state)
         {
             if (state == PullRequestReviewState.Commented)
@@ -166,10 +157,9 @@ namespace RepoMan
         /// <param name="generalPrComments"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public static PullRequestDetails WithDiscussionComments(this PullRequestDetails prDetails, IReadOnlyList<IssueComment> generalPrComments)
+        public void UpdateDiscussionComments(IReadOnlyList<IssueComment> generalPrComments)
         {
-            prDetails.ReviewComments.AddRange(generalPrComments.Select(GetComment));
-            return prDetails;
+            ReviewComments.AddRange(generalPrComments.Select(GetComment));
         }
 
         private static Comment GetComment(IssueComment issueComment)
