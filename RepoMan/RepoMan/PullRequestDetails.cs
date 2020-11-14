@@ -40,11 +40,6 @@ namespace RepoMan
         public DateTimeOffset MergedAt { get; set; }
         
         /// <summary>
-        /// The top-level comments associated with a pull request
-        /// </summary>
-        public List<Comment> Comments { get; set; } = new List<Comment>();
-        
-        /// <summary>
         /// Comments associated with clicking the button in the approve/request changes workflow
         /// </summary>
         public List<Comment> ReviewComments { get; set; } = new List<Comment>();
@@ -58,6 +53,8 @@ namespace RepoMan
         /// Comments on specific commits
         /// </summary>
         public List<Comment> CommitComments { get; set; } = new List<Comment>();
+        
+        public bool IsFullyInterrogated { get; set; }
         
         public PullRequestDetails(){}
 
