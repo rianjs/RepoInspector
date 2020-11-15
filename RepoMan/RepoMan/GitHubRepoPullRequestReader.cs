@@ -9,7 +9,8 @@ namespace RepoMan
     /// <summary>
     /// Represents a GitHub pull request reader intended to be used against a specific repository.
     /// </summary>
-    public class GitHubRepoPullRequestReader
+    public class GitHubRepoPullRequestReader :
+        IRepoPullRequestReader
     {
         private readonly string _repoOwner;
         private readonly string _repoName;

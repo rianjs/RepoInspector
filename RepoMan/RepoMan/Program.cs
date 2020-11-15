@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -8,6 +9,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Octokit;
+using RepoMan.RepoHistory;
+using Serilog;
 
 namespace RepoMan
 {
@@ -17,6 +20,7 @@ namespace RepoMan
         private static readonly string _scratchDir = GetScratchDirectory();
         private static readonly string _token = File.ReadAllText(_tokenPath).Trim();
         private static readonly JsonSerializerSettings _jsonSerializerSettings = GetDebugJsonSerializerSettings();
+        private static readonly ILogger _logger = GetLogger();
 
         static async Task Main(string[] args)
         {
@@ -31,9 +35,6 @@ namespace RepoMan
 
             var client = GetClient(url, apiToken);
             await Debug(client);
-            
-            
-            Console.WriteLine("Hello World!");
         }
 
         private static async Task Debug(GitHubClient client)
@@ -46,10 +47,26 @@ namespace RepoMan
             var cachePath = Path.Combine(_scratchDir, "pull-requests.json");
             var fs = new Filesystem.Filesystem();
             
-            var repoHistoryMgr = await FilesystemRepoHistoryManager.CreateAsync(fs, cachePath, _jsonSerializerSettings);
-            
             try
             {
+                var repoHistoryMgr = await RepoHistoryManager.InitializeAsync(fs, cachePath, prReader, _jsonSerializerSettings, _logger);
+                var populationDelay = TimeSpan.FromSeconds(0.5);
+                
+                // Initialize the cache
+                // if it's empty, try to fill it up, or create 
+                
+                
+                await repoHistoryMgr.PopulateUnfinishedPullRequestsAsync(populationDelay);
+
+                var isEmpty = (await repoHistoryMgr.GetPullRequestCount()) == 0;
+                if (isEmpty)
+                {
+                    var incompleteClosedPrs = await prReader.GetPullRequests(ItemStateFilter.Closed);
+                    await repoHistoryMgr.ImportPullRequestsAsync(incompleteClosedPrs);
+                    // await repoHistoryMgr.
+                    // var foo = await repoHistoryManager.ImportBatchAsync(closedPrs);
+                }
+
                 // Read the cache
                 // Find the elements that haven't been fully populated
                 // Populate them until we can't anymore
@@ -77,7 +94,6 @@ namespace RepoMan
 
                 // Other
                 // Commits merged directly to master
-
 
                 // var shallowResult = Path.Combine(_scratchDir, "shallow-prs.json");
                 // var shallowWriteTask = File.WriteAllTextAsync(shallowResult, JsonConvert.SerializeObject(closedPrs, Formatting.Indented));
@@ -114,9 +130,11 @@ namespace RepoMan
 
             return Path.Combine(path, "scratch");
         }
-
-        public static string Serialize(object o)
-            => JsonConvert.SerializeObject(o, Formatting.Indented);
+        
+        private static ILogger GetLogger() =>
+            new LoggerConfiguration()
+                .WriteTo.Console()
+                .CreateLogger();
 
         public static string CreateFullPath(string fileName)
             => Path.Combine(_scratchDir, fileName);
