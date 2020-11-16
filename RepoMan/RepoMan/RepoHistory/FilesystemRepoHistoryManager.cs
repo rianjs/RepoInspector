@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Octokit;
 using RepoMan.Filesystem;
 using Serilog;
 
@@ -22,6 +23,8 @@ namespace RepoMan.RepoHistory
         private readonly JsonSerializerSettings _jsonSerializerSettings;
         private readonly SemaphoreSlim _byNumberLock = new SemaphoreSlim(1, 1);
         private readonly IRepoPullRequestReader _prReader;
+        private readonly TimeSpan _dosBuffer;
+        
         private readonly Dictionary<int, PullRequestDetails> _byNumber;
         private readonly ILogger _logger;
 
@@ -29,12 +32,15 @@ namespace RepoMan.RepoHistory
             IFilesystem fs,
             string cachePath,
             IRepoPullRequestReader prReader,
+            TimeSpan prApiDosBuffer,
             JsonSerializerSettings jsonSerializerSettings,
             Dictionary<int, PullRequestDetails> byNumber,
             ILogger logger)
         {
-            _fs = fs ;
+            _fs = fs;
             _cachePath = cachePath;
+            _prReader = prReader;
+            _dosBuffer = prApiDosBuffer;
             _jsonSerializerSettings = jsonSerializerSettings;
             _logger = logger;
             _byNumber = byNumber;
@@ -44,6 +50,7 @@ namespace RepoMan.RepoHistory
             IFilesystem fs,
             string cachePath,
             IRepoPullRequestReader prReader,
+            TimeSpan prApiDosBuffer,
             JsonSerializerSettings jsonSerializerSettings,
             ILogger logger)
         {
@@ -60,6 +67,11 @@ namespace RepoMan.RepoHistory
             if (prReader is null)
             {
                 throw new ArgumentNullException(nameof(prReader));
+            }
+            
+            if (prApiDosBuffer < TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(nameof(prApiDosBuffer));
             }
             
             if (jsonSerializerSettings is null)
@@ -91,7 +103,18 @@ namespace RepoMan.RepoHistory
             timer.Stop();
             logger.Information($"Initialized the cache with {byNumber.Count:N0} pull requests in {timer.ElapsedMilliseconds:N0}ms");
             
-            return new RepoHistoryManager(fs, cachePath, prReader, jsonSerializerSettings, byNumber, logger);
+            var repoHistoryMgr = new RepoHistoryManager(fs, cachePath, prReader, prApiDosBuffer, jsonSerializerSettings, byNumber, logger);
+
+            if (byNumber.Count > 0)
+            {
+                return repoHistoryMgr;
+            }
+            
+            // If there's nothing in the cache, go look for stuff.
+            var closedPrs = await prReader.GetPullRequestsRootAsync(ItemStateFilter.Closed);
+            await repoHistoryMgr.ImportPullRequestsAsync(closedPrs); 
+            await repoHistoryMgr.PopulateCommentsAndApprovalsAsync();
+            return repoHistoryMgr;
         }
 
         /// <summary>
@@ -138,10 +161,8 @@ namespace RepoMan.RepoHistory
                 {
                     _byNumber[updatedPr.Number] = updatedPr;
                 }
-
-                await SaveAsync();
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 _logger.Error($"Something went wrong during the import process...");
                 throw;
@@ -152,31 +173,41 @@ namespace RepoMan.RepoHistory
                 _byNumberLock.Release();
             }
             
+            await SaveAsync();
+            
             _logger.Information($"{imports.Count:N0} pull requests were imported and persisted to the cache data store in {timer.ElapsedMilliseconds:N0}ms");
 
             if (incompleteImports.Any())
             {
-                await PopulateUnfinishedPullRequestsAsync();
+                await PopulateCommentsAndApprovalsAsync();
             }
         }
 
         private async Task SaveAsync()
         {
+            var updates = new List<PullRequestDetails>();
             try
             {
                 await _byNumberLock.WaitAsync();
-                var json = JsonConvert.SerializeObject(_byNumber.Values, _jsonSerializerSettings);
-                await _fs.FileReadAllTextAsync(json);
+                updates.AddRange(_byNumber.Values);
             }
             finally
             {
                 _byNumberLock.Release();
             }
+            
+            var json = JsonConvert.SerializeObject(updates, _jsonSerializerSettings);
+            await _fs.FileWriteAllTextAsync(_cachePath, json);
         }
 
-        public async Task PopulateUnfinishedPullRequestsAsync(TimeSpan delay)
+        /// <summary>
+        /// Examines the cached pull requests for those that haven't had their comments and approvals populated, and then does so, persisting the complete cache
+        /// to its data store.
+        /// </summary>
+        /// <returns></returns>
+        public async Task PopulateCommentsAndApprovalsAsync()
         {
-            _logger.Information("Finding incomplete pull requests...");
+            _logger.Information("Finding incomplete pull requests present in the cache...");
             var unfinishedPrs = await GetUnfinishedPullRequestsAsync();
             _logger.Information($"{unfinishedPrs.Count:N0} pull requests with incomplete data found in the cache");
             var successfullyUpdatePrs = new List<PullRequestDetails>(unfinishedPrs.Count);
@@ -197,7 +228,7 @@ namespace RepoMan.RepoHistory
                 
                 successfullyUpdatePrs.Add(pr);
 
-                await Task.Delay(delay);
+                await Task.Delay(_dosBuffer);
             }
 
             if (!successfullyUpdatePrs.Any())

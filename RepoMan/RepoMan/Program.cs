@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -43,49 +41,15 @@ namespace RepoMan
             var repo = "nyt-2020-election-scraper";
             const int number = 368;
             var prReader = new GitHubRepoPullRequestReader(owner, repo, client);
+            var dosBuffer = TimeSpan.FromSeconds(0.5);
 
-            var cachePath = Path.Combine(_scratchDir, "pull-requests.json");
+            var cachePath = Path.Combine(_scratchDir, $"{owner}-{repo}-prs.json");
             var fs = new Filesystem.Filesystem();
             
             try
             {
-                var repoHistoryMgr = await RepoHistoryManager.InitializeAsync(fs, cachePath, prReader, _jsonSerializerSettings, _logger);
-                var populationDelay = TimeSpan.FromSeconds(0.5);
-                
-                // Initialize the cache
-                // if it's empty, try to fill it up, or create 
-                
-                
-                await repoHistoryMgr.PopulateUnfinishedPullRequestsAsync(populationDelay);
+                var repoHistoryMgr = await RepoHistoryManager.InitializeAsync(fs, cachePath, prReader, dosBuffer, _jsonSerializerSettings, _logger);
 
-                var isEmpty = (await repoHistoryMgr.GetPullRequestCount()) == 0;
-                if (isEmpty)
-                {
-                    var incompleteClosedPrs = await prReader.GetPullRequests(ItemStateFilter.Closed);
-                    await repoHistoryMgr.ImportPullRequestsAsync(incompleteClosedPrs);
-                    // await repoHistoryMgr.
-                    // var foo = await repoHistoryManager.ImportBatchAsync(closedPrs);
-                }
-
-                // Read the cache
-                // Find the elements that haven't been fully populated
-                // Populate them until we can't anymore
-                // Write down the result
-                
-                // https://github.com/alex/nyt-2020-election-scraper/pull/368 has comments, diff comments, and approvals with comments
-                var allClosedPrs = await prReader.GetPullRequests(ItemStateFilter.Closed);
-
-                foreach (var pr in allClosedPrs)
-                {
-                    var succeeded = await prReader.TryFillCommentGraphAsync(pr);
-                    if (!succeeded)
-                    {
-                        break;
-                    }
-
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                }
-                
                 // PR statistics of interest:
                 // Approval count per PR
                 // Comment count per PR

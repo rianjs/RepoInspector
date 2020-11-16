@@ -31,7 +31,7 @@ namespace RepoMan
             _repoName = string.IsNullOrWhiteSpace(repoName)
                 ? throw new ArgumentNullException(nameof(repoName))
                 : repoName;
-            
+
             _client = client ?? throw new ArgumentNullException(nameof(client));
         }
 
@@ -42,7 +42,7 @@ namespace RepoMan
         /// <param name="repoName"></param>
         /// <param name="stateFilter"></param>
         /// <returns></returns>
-        public async Task<IList<PullRequestDetails>> GetPullRequests(ItemStateFilter stateFilter)
+        public async Task<IList<PullRequestDetails>> GetPullRequestsRootAsync(ItemStateFilter stateFilter)
         {
             var prOpts = new PullRequestRequest
             {

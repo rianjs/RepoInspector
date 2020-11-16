@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -26,7 +25,7 @@ namespace RepoMan.RepoHistory
         /// <param name="prReader"></param>
         /// <param name="delay">Delay to wait before trying to update the next pull request in the list</param>
         /// <returns></returns>
-        Task PopulateUnfinishedPullRequestsAsync(IRepoPullRequestReader prReader, TimeSpan delay);
+        Task PopulateCommentsAndApprovalsAsync();
 
         /// <summary>
         /// Returns the number of pull requests in the cache that have been fully populated
