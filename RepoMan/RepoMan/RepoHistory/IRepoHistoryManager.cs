@@ -32,5 +32,20 @@ namespace RepoMan.RepoHistory
         /// </summary>
         /// <returns></returns>
         Task<int> GetPullRequestCount();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="prNumber"></param>
+        /// <returns>null if the pull request number is not present</returns>
+        Task<PullRequestDetails> GetPullRequestByNumber(int prNumber);
+
+        IAsyncEnumerable<PullRequestDetails> GetPullRequestsAsync();
+
+        /// <summary>
+        /// Returns the comments on each PR
+        /// </summary>
+        /// <returns></returns>
+        Task<IList<Comment>> GetAllCommentsForRepo();
     }
 }

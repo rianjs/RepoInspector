@@ -48,7 +48,13 @@ namespace RepoMan
             
             try
             {
-                var repoHistoryMgr = await RepoHistoryManager.InitializeAsync(fs, cachePath, prReader, dosBuffer, _jsonSerializerSettings, _logger);
+                IRepoHistoryManager repoHistoryMgr = await RepoHistoryManager.InitializeAsync(fs, cachePath, prReader, dosBuffer, _jsonSerializerSettings, _logger);
+                var allPrComments = await repoHistoryMgr.GetAllCommentsForRepo();
+
+                await foreach (var pr in repoHistoryMgr.GetPullRequestsAsync())
+                {
+                    // Calculate some stats
+                }
 
                 // PR statistics of interest:
                 // Approval count per PR

@@ -255,5 +255,52 @@ namespace RepoMan.RepoHistory
                 _byNumberLock.Release();
             }
         }
+
+        public async Task<IList<Comment>> GetAllCommentsForRepo()
+        {
+            try
+            {
+                await _byNumberLock.WaitAsync();
+                var commitComments = _byNumber.SelectMany(pr => pr.Value.CommitComments);
+                var diffComments = _byNumber.SelectMany(pr => pr.Value.DiffComments);
+                var reviewComments = _byNumber.SelectMany(pr => pr.Value.ReviewComments);
+                return commitComments.Concat(diffComments).Concat(reviewComments).ToList();
+            }
+            finally
+            {
+                _byNumberLock.Release();
+            }
+        }
+        
+        public async Task<PullRequestDetails> GetPullRequestByNumber(int prNumber)
+        {
+            try
+            {
+                await _byNumberLock.WaitAsync();
+                return _byNumber.ContainsKey(prNumber)
+                    ? _byNumber[prNumber]
+                    : null;
+            }
+            finally
+            {
+                _byNumberLock.Release();
+            }
+        }
+
+        public async IAsyncEnumerable<PullRequestDetails> GetPullRequestsAsync()
+        {
+            try
+            {
+                await _byNumberLock.WaitAsync();
+                foreach (var prDetails in _byNumber.Values)
+                {
+                    yield return prDetails;
+                }
+            }
+            finally
+            {
+                _byNumberLock.Release();
+            }
+        }
     }
 }
