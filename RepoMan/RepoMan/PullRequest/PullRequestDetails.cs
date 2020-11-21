@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Octokit;
 
-namespace RepoMan
+namespace RepoMan.PullRequest
 {
     public class RepositoryDetails
     {
@@ -58,7 +58,7 @@ namespace RepoMan
         
         public PullRequestDetails(){}
 
-        public PullRequestDetails(PullRequest pullRequest)
+        public PullRequestDetails(Octokit.PullRequest pullRequest)
         {
             if (pullRequest is null)
             {

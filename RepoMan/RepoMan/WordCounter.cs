@@ -2,7 +2,8 @@
 
 namespace RepoMan
 {
-    public class WordCounter
+    public class WordCounter :
+        IWordCounter
     {
         private readonly Regex _counter = new Regex(
             pattern: "[\\w]+",

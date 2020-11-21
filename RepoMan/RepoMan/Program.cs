@@ -66,16 +66,6 @@ namespace RepoMan
                 await foreach (var pr in repoHistoryMgr.GetPullRequestsAsync())
                 {
                     prCount++;
-                    
-                    // Should make this next bit data driven
-                    approvals += pr.ReviewComments.Count(c =>
-                        string.Equals("Approved", c.ReviewState, StringComparison.OrdinalIgnoreCase)
-                        || c.Text?.Equals("approved", StringComparison.OrdinalIgnoreCase) == true
-                        || c.Text?.Equals("looks good", StringComparison.OrdinalIgnoreCase) == true
-                        || c.Text?.Equals("lgtm", StringComparison.OrdinalIgnoreCase) == true
-                        || c.Text?.Equals("ok to merge", StringComparison.OrdinalIgnoreCase) == true
-                        || c.Text?.Equals("go ahead and merge", StringComparison.OrdinalIgnoreCase) == true);
-                    
                     var wordCount = pr.AllComments.Select(c => wordCounter.CountWords(c.Text)).Sum();
                     wordCountsByPr[pr.Number] = wordCount;
                     var commentCount = pr.AllComments.Count();
@@ -95,7 +85,6 @@ namespace RepoMan
                 // the median
                 // MEASURES:
                 // Median word count per comment (should always be > 1, otherwise it should just be an approval)
-                //
                 
                 // Comment complexity per PR (i.e. how robust was the dialog?)
                 // Median word count per comment

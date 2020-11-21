@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Octokit;
+using RepoMan.PullRequest;
 
-namespace RepoMan
+namespace RepoMan.Repository
 {
     /// <summary>
     /// Represents a GitHub pull request reader intended to be used against a specific repository.

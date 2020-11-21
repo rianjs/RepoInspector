@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Octokit;
 using RepoMan.Filesystem;
+using RepoMan.PullRequest;
 using Serilog;
 
 namespace RepoMan.Repository
