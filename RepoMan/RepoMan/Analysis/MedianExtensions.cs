@@ -8,8 +8,12 @@ namespace RepoMan.Analysis
     {
         public static int CalculateMedian(this ICollection<int> integers)
         {
-            // No, I don't particularly care that there are faster algorithms
+            if (!integers.Any())
+            {
+                return 0;
+            }
             
+            // No, I don't particularly care that there are faster algorithms
             var sorted = new List<int>(integers.Count);
             sorted.AddRange(integers.OrderBy(i => i));
 
@@ -34,8 +38,12 @@ namespace RepoMan.Analysis
         
         public static double CalculateMedian(this ICollection<double> doubles)
         {
-            // No, I don't particularly care that there are faster algorithms
+            if (!doubles.Any())
+            {
+                return 0;
+            }
             
+            // No, I don't particularly care that there are faster algorithms
             var sorted = new List<double>(doubles.Count);
             sorted.AddRange(doubles.OrderBy(i => i));
 

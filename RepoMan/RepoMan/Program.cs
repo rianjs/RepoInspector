@@ -8,6 +8,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Octokit;
+using RepoMan.Analysis;
+using RepoMan.PullRequest;
 using RepoMan.Repository;
 using Serilog;
 
@@ -44,9 +46,22 @@ namespace RepoMan
             var prReader = new GitHubRepoPullRequestReader(owner, repo, client);
             var dosBuffer = TimeSpan.FromSeconds(0.5);
 
+            var approvalStates = new[] {"APPROVED"};
+            var nonApprovalStates = new[] {"CHANGES_REQUESTED", "COMMENTED", "DISMISSED", "PENDING"};
+            var implicitApprovals = new[]
+            {
+                "lgtm",
+                "ok to merge",
+                "go ahead and merge",
+                "looks good to me",
+            };
+            
+
             var cachePath = Path.Combine(_scratchDir, $"{owner}-{repo}-prs.json");
             var fs = new Filesystem.Filesystem();
             var wordCounter = new WordCounter();
+            var approvalAnalyzer = new ApprovalAnalyzer(approvalStates, nonApprovalStates, implicitApprovals);
+            var commentAnalyzer = new CommentAnalyzer(approvalAnalyzer, wordCounter);
             
             try
             {
@@ -61,15 +76,12 @@ namespace RepoMan
 
                 var prCount = 0;
                 var approvals = 0;
-                var wordCountsByPr = new Dictionary<int, int>();
-                var commentCountByPr = new Dictionary<int, int>();
+                var pullRequestSnapshots = new List<PullRequestCommentSnapshot>();
                 await foreach (var pr in repoHistoryMgr.GetPullRequestsAsync())
                 {
                     prCount++;
-                    var wordCount = pr.AllComments.Select(c => wordCounter.CountWords(c.Text)).Sum();
-                    wordCountsByPr[pr.Number] = wordCount;
-                    var commentCount = pr.AllComments.Count();
-                    commentCountByPr[pr.Number] = commentCount;
+                    var snapshot = commentAnalyzer.CalculateCommentStatistics(pr);
+                    pullRequestSnapshots.Add(snapshot);
                 }
 
                 // PR statistics of interest:

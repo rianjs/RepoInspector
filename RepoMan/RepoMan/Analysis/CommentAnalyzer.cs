@@ -19,15 +19,17 @@ namespace RepoMan.Analysis
 
         public PullRequestCommentSnapshot CalculateCommentStatistics(PullRequestDetails prDetails)
         {
-            // Find the comments from people who approved the PR [user] => {Comment, Comment} -- count is the key count
             var approvals = GetApprovals(prDetails);
-            
-            // Calculate comment count
             var nonEmptyComments = GetNonEmptyComments(prDetails);
 
             var wordCounts = nonEmptyComments
                 .Select(c => _wordCounter.CountWords(c.Text) + _wordCounter.CountWords(c.ReviewState))
                 .ToList();
+
+            if (wordCounts.Any())
+            {
+                wordCounts.ForEach(Console.WriteLine);
+            }
 
             var snapshot = new PullRequestCommentSnapshot
             {
