@@ -10,10 +10,11 @@ using Octokit;
 using RepoMan.Filesystem;
 using Serilog;
 
-namespace RepoMan.RepoHistory
+namespace RepoMan.Repository
 {
     /// <summary>
-    /// Handles the cache management (both reading and writing) associated with historical repositories, since querying the GitHub API is slow, and rate-limited 
+    /// Handles the cache management (both reading and writing) associated with historical repositories, since querying the GitHub API is slow, and rate-limited.
+    /// Under the hood, many methods utilize SemaphoreSlim for read/write thread-safety, which is why many methods are async Tasks instead of values.
     /// </summary>
     public class RepoHistoryManager :
         IRepoHistoryManager
@@ -51,6 +52,7 @@ namespace RepoMan.RepoHistory
             string cachePath,
             IRepoPullRequestReader prReader,
             TimeSpan prApiDosBuffer,
+            bool refreshFromUpstream,
             JsonSerializerSettings jsonSerializerSettings,
             ILogger logger)
         {
@@ -105,35 +107,43 @@ namespace RepoMan.RepoHistory
             
             var repoHistoryMgr = new RepoHistoryManager(fs, cachePath, prReader, prApiDosBuffer, jsonSerializerSettings, byNumber, logger);
 
-            if (byNumber.Count > 0)
+            if (!refreshFromUpstream)
             {
                 return repoHistoryMgr;
             }
             
             // If there's nothing in the cache, go look for stuff.
-            var closedPrs = await prReader.GetPullRequestsRootAsync(ItemStateFilter.Closed);
-            await repoHistoryMgr.ImportPullRequestsAsync(closedPrs); 
-            await repoHistoryMgr.PopulateCommentsAndApprovalsAsync();
+            await repoHistoryMgr.RefreshFromUpstreamAsync(ItemStateFilter.Closed);
             return repoHistoryMgr;
         }
 
         /// <summary>
-        /// Sometimes it's not possible to fully interrogate the commit graph
         /// </summary>
+        /// <param name="stateFilter"></param>
         /// <returns></returns>
-        public async Task<ICollection<PullRequestDetails>> GetUnfinishedPullRequestsAsync()
+        public async Task RefreshFromUpstreamAsync(ItemStateFilter stateFilter)
         {
+            var prRootTask = _prReader.GetPullRequestsRootAsync(stateFilter);
+            var unknownPrs = new List<PullRequestDetails>();            
+            
             try
             {
                 await _byNumberLock.WaitAsync();
-                var unfinished = _byNumber.Values
-                    .Where(pr => !pr.IsFullyInterrogated)
-                    .ToList();
-                return unfinished;
+                var prs = await prRootTask;
+                var unknownPrsQuery = prs.Where(pr => !_byNumber.ContainsKey(pr.Number));
+                unknownPrs.AddRange(unknownPrsQuery);
             }
             finally
             {
                 _byNumberLock.Release();
+            }
+
+            var completedPrs = await PopulateCommentsAndApprovalsAsync(unknownPrs);
+
+            if (completedPrs.Any())
+            {
+                await UpdateMemoryCacheAsync(completedPrs);
+                await PersistCacheAsync();
             }
         }
 
@@ -142,50 +152,32 @@ namespace RepoMan.RepoHistory
         /// supply a bad collection to be imported, your cache will be fried with bad data. If you supply incomplete pull requests, they will overwrite completed
         /// pull requests with no warning.
         /// </summary>
-        /// <param name="imports"></param>
+        /// <param name="prRoots"></param>
         /// <returns></returns>
-        public async Task ImportPullRequestsAsync(ICollection<PullRequestDetails> imports)
+        private async ValueTask UpdateMemoryCacheAsync(List<PullRequestDetails> prRoots)
         {
-            _logger.Information($"Attempting to import {imports.Count:N0} new pull requests");
+            if (!prRoots.Any())
+            {
+                return;
+            }
             
-            var incompleteImports = imports
-                .Where(pr => !pr.IsFullyInterrogated)
-                .ToList();
-            
-            var timer = Stopwatch.StartNew();
-
             try
             {
                 await _byNumberLock.WaitAsync();
-                foreach (var updatedPr in imports)
+                foreach (var updatedPr in prRoots)
                 {
                     _byNumber[updatedPr.Number] = updatedPr;
                 }
             }
-            catch (Exception)
-            {
-                _logger.Error($"Something went wrong during the import process...");
-                throw;
-            }
             finally
             {
-                timer.Stop();
                 _byNumberLock.Release();
-            }
-            
-            await SaveAsync();
-            
-            _logger.Information($"{imports.Count:N0} pull requests were imported and persisted to the cache data store in {timer.ElapsedMilliseconds:N0}ms");
-
-            if (incompleteImports.Any())
-            {
-                await PopulateCommentsAndApprovalsAsync();
             }
         }
 
-        private async Task SaveAsync()
+        private async ValueTask PersistCacheAsync()
         {
-            var updates = new List<PullRequestDetails>();
+            var updates = new List<PullRequestDetails>(_byNumber.Count);    // Dirty read is OK for minor GC optimization
             try
             {
                 await _byNumberLock.WaitAsync();
@@ -201,15 +193,14 @@ namespace RepoMan.RepoHistory
         }
 
         /// <summary>
-        /// Examines the cached pull requests for those that haven't had their comments and approvals populated, and then does so, persisting the complete cache
-        /// to its data store.
+        /// Deep queries the git API to retrieve all comments, approvals, etc. for each of the specified pull requests to its data store. If the git API starts
+        /// rejecting queries (due to rate limits or whatever), the pull requests that have had their comments approval and comment data fully populated are
+        /// returned.
         /// </summary>
-        /// <returns></returns>
-        public async Task PopulateCommentsAndApprovalsAsync()
+        /// <returns>The collection of fully-updated pull requests</returns>
+        private async ValueTask<List<PullRequestDetails>> PopulateCommentsAndApprovalsAsync(List<PullRequestDetails> unfinishedPrs)
         {
-            _logger.Information("Finding incomplete pull requests present in the cache...");
-            var unfinishedPrs = await GetUnfinishedPullRequestsAsync();
-            _logger.Information($"{unfinishedPrs.Count:N0} pull requests with incomplete data found in the cache");
+            _logger.Information($"{unfinishedPrs.Count:N0} pull requests with incomplete data to be populated");
             var successfullyUpdatePrs = new List<PullRequestDetails>(unfinishedPrs.Count);
             
             foreach (var pr in unfinishedPrs)
@@ -231,19 +222,10 @@ namespace RepoMan.RepoHistory
                 await Task.Delay(_dosBuffer);
             }
 
-            if (!successfullyUpdatePrs.Any())
-            {
-                return;
-            }
-            
-            _logger.Information($"Updating the long-term cache with {successfullyUpdatePrs.Count:N0} new entries");
-            var timer = Stopwatch.StartNew();
-            await ImportPullRequestsAsync(successfullyUpdatePrs);
-            timer.Stop();
-            _logger.Information($"{successfullyUpdatePrs.Count} new pull requests written to the cache");
+            return successfullyUpdatePrs;
         }
 
-        public async Task<int> GetPullRequestCount()
+        public async ValueTask<int> GetPullRequestCount()
         {
             try
             {
@@ -256,7 +238,7 @@ namespace RepoMan.RepoHistory
             }
         }
 
-        public async Task<IList<Comment>> GetAllCommentsForRepo()
+        public async ValueTask<IList<Comment>> GetAllCommentsForRepo()
         {
             try
             {
@@ -272,7 +254,11 @@ namespace RepoMan.RepoHistory
             }
         }
         
-        public async Task<PullRequestDetails> GetPullRequestByNumber(int prNumber)
+        /// <summary>
+        /// </summary>
+        /// <param name="prNumber"></param>
+        /// <returns>Null if the pull request number is not found</returns>
+        public async ValueTask<PullRequestDetails> GetPullRequestByNumber(int prNumber)
         {
             try
             {
@@ -287,6 +273,10 @@ namespace RepoMan.RepoHistory
             }
         }
 
+        /// <summary>
+        /// Thread-safe, lazy, non-copy read from the in-memory cache
+        /// </summary>
+        /// <returns></returns>
         public async IAsyncEnumerable<PullRequestDetails> GetPullRequestsAsync()
         {
             try

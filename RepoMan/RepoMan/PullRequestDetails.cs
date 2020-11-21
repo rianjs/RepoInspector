@@ -175,6 +175,9 @@ namespace RepoMan
                 },
             };
         }
+
+        public IEnumerable<Comment> AllComments
+            => ReviewComments.Concat(DiffComments).Concat(CommitComments);
     }
 
     public class Comment

@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Octokit;
-using RepoMan.RepoHistory;
+using RepoMan.Repository;
 using Serilog;
 
 namespace RepoMan
@@ -45,23 +46,66 @@ namespace RepoMan
 
             var cachePath = Path.Combine(_scratchDir, $"{owner}-{repo}-prs.json");
             var fs = new Filesystem.Filesystem();
+            var wordCounter = new WordCounter();
             
             try
             {
-                IRepoHistoryManager repoHistoryMgr = await RepoHistoryManager.InitializeAsync(fs, cachePath, prReader, dosBuffer, _jsonSerializerSettings, _logger);
-                var allPrComments = await repoHistoryMgr.GetAllCommentsForRepo();
+                IRepoHistoryManager repoHistoryMgr = await RepoHistoryManager.InitializeAsync(
+                    fs: fs,
+                    cachePath: cachePath,
+                    prReader: prReader,
+                    prApiDosBuffer: dosBuffer,
+                    refreshFromUpstream: true,
+                    jsonSerializerSettings: _jsonSerializerSettings,
+                    logger: _logger);
 
+                var prCount = 0;
+                var approvals = 0;
+                var wordCountsByPr = new Dictionary<int, int>();
+                var commentCountByPr = new Dictionary<int, int>();
                 await foreach (var pr in repoHistoryMgr.GetPullRequestsAsync())
                 {
-                    // Calculate some stats
+                    prCount++;
+                    
+                    // Should make this next bit data driven
+                    approvals += pr.ReviewComments.Count(c =>
+                        string.Equals("Approved", c.ReviewState, StringComparison.OrdinalIgnoreCase)
+                        || c.Text?.Equals("approved", StringComparison.OrdinalIgnoreCase) == true
+                        || c.Text?.Equals("looks good", StringComparison.OrdinalIgnoreCase) == true
+                        || c.Text?.Equals("lgtm", StringComparison.OrdinalIgnoreCase) == true
+                        || c.Text?.Equals("ok to merge", StringComparison.OrdinalIgnoreCase) == true
+                        || c.Text?.Equals("go ahead and merge", StringComparison.OrdinalIgnoreCase) == true);
+                    
+                    var wordCount = pr.AllComments.Select(c => wordCounter.CountWords(c.Text)).Sum();
+                    wordCountsByPr[pr.Number] = wordCount;
+                    var commentCount = pr.AllComments.Count();
+                    commentCountByPr[pr.Number] = commentCount;
                 }
 
                 // PR statistics of interest:
                 // Approval count per PR
                 // Comment count per PR
+                // Most comments (pr => {})
+                
+                // COMMENTARY CHARACTERISTICS
+                // How robust is the dialog when it needs to be?
+                // HYPOTHESIS: strong teams have PRs with either a lot or very little dialog, depending on the scope of changes proposed. Small changesets are
+                // easy to approve and often have no comments. Design changes will often engender a LOT of comments. So in a health repo, you'd expect to see a 
+                // small number of comments consistently (rarely zero), and a huge number of comments once in a while, often in a PR that stays open longer than
+                // the median
+                // MEASURES:
+                // Median word count per comment (should always be > 1, otherwise it should just be an approval)
+                //
+                
                 // Comment complexity per PR (i.e. how robust was the dialog?)
-                // Comments per line changed
+                // Median word count per comment
+                // Most 
 
+                // APPROVAL/MERGE CHARACTERISTICS
+                // PRs shouldn't get stale. They should have a turnaround time of 1-2 business days in most cases. PRs open longer than that should have a lot
+                // dialog.
+                
+                
                 // Other
                 // Commits merged directly to master
 
