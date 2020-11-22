@@ -1,12 +1,25 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace RepoMan.Analysis
 {
-    public static class MedianExtensions
+    public static class MathExtensions
     {
-        public static int CalculateMedian(this ICollection<int> integers)
+        public static int CalculateMedian(this IEnumerable<int> integers)
+        {
+            var longMedian = integers.Cast<long>().CalculateMedian();
+            return (int) longMedian;
+        }
+
+        public static TimeSpan CalculateMedian(this IEnumerable<TimeSpan> durations)
+        {
+            var tickMedian = durations.Select(d => d.Ticks).CalculateMedian();
+            return TimeSpan.FromTicks(tickMedian);
+        }
+        
+        public static long CalculateMedian(this IEnumerable<long> integers)
         {
             if (!integers.Any())
             {
@@ -14,7 +27,7 @@ namespace RepoMan.Analysis
             }
             
             // No, I don't particularly care that there are faster algorithms
-            var sorted = new List<int>(integers.Count);
+            var sorted = new List<long>();
             sorted.AddRange(integers.OrderBy(i => i));
 
             var isOdd = sorted.Count % 2 == 1;
@@ -33,10 +46,10 @@ namespace RepoMan.Analysis
             }
             
             var average = ((double)first + second) / 2;
-            return (int) Math.Round(average, MidpointRounding.AwayFromZero);
+            return (long) Math.Round(average, MidpointRounding.AwayFromZero);
         }
         
-        public static double CalculateMedian(this ICollection<double> doubles)
+        public static double CalculateMedian(this IEnumerable<double> doubles)
         {
             if (!doubles.Any())
             {
@@ -44,7 +57,7 @@ namespace RepoMan.Analysis
             }
             
             // No, I don't particularly care that there are faster algorithms
-            var sorted = new List<double>(doubles.Count);
+            var sorted = new List<double>();
             sorted.AddRange(doubles.OrderBy(i => i));
 
             var isOdd = sorted.Count % 2 == 1;
@@ -64,6 +77,21 @@ namespace RepoMan.Analysis
             
             var average = (first + second) / 2;
             return average;
+        }
+
+        public static double CalculatePopulationStdDeviation(this IEnumerable<double> values)
+        {
+            // The square root of the variance
+            var variance = CalculatePopulationVariance(values);
+            return Math.Sqrt(variance);
+        }
+
+        public static double CalculatePopulationVariance(this IEnumerable<double> values)
+        {
+            // The average of the squared differences from the Mean.
+            var populationMean = values.Average();
+            var variance = values.Average(v => (v - populationMean) * (v - populationMean));
+            return variance;
         }
     }
 }

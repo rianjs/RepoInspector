@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 using Octokit;
 
 namespace RepoMan.PullRequest
@@ -176,6 +177,7 @@ namespace RepoMan.PullRequest
             };
         }
 
+        [JsonIgnore]
         public IEnumerable<Comment> AllComments
             => ReviewComments.Concat(DiffComments).Concat(CommitComments);
     }

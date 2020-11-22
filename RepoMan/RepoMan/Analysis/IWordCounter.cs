@@ -1,4 +1,4 @@
-namespace RepoMan
+namespace RepoMan.Analysis
 {
     public interface IWordCounter
     {

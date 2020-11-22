@@ -131,7 +131,7 @@ namespace RepoMan.Repository
             {
                 await _byNumberLock.WaitAsync();
                 var prs = await prRootTask;
-                var unknownPrsQuery = prs.Where(pr => !_byNumber.ContainsKey(pr.Number));
+                var unknownPrsQuery = prs.Where(pr => !_byNumber.ContainsKey(pr.Number) || _byNumber[pr.Number].IsFullyInterrogated == false);
                 unknownPrs.AddRange(unknownPrsQuery);
             }
             finally

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 using RepoMan.PullRequest;
 
 namespace RepoMan.Analysis
@@ -23,14 +24,10 @@ namespace RepoMan.Analysis
             var nonEmptyComments = GetNonEmptyComments(prDetails);
 
             var wordCounts = nonEmptyComments
-                .Select(c => _wordCounter.CountWords(c.Text) + _wordCounter.CountWords(c.ReviewState))
+                .Select(c => _wordCounter.CountWords(c.Text))
                 .ToList();
 
-            if (wordCounts.Any())
-            {
-                wordCounts.ForEach(Console.WriteLine);
-            }
-
+            // Comments with no words seem to make the stats less useful. They should probably be excluded from the comment statistics calculations
             var snapshot = new PullRequestCommentSnapshot
             {
                 Timestamp = DateTimeOffset.UtcNow,
@@ -48,7 +45,7 @@ namespace RepoMan.Analysis
         private List<Comment> GetNonEmptyComments(PullRequestDetails prDetails)
         {
             return prDetails.AllComments
-                .Where(c => !string.IsNullOrWhiteSpace(c.Text) || !string.IsNullOrWhiteSpace(c.ReviewState))
+                .Where(c => !string.IsNullOrWhiteSpace(c.Text))
                 .ToList();
         }
 
@@ -74,6 +71,10 @@ namespace RepoMan.Analysis
         public DateTimeOffset Timestamp { get; set; }
         public DateTimeOffset OpenedAt { get; set; }
         public DateTimeOffset ClosedAt { get; set; }
+        
+        [JsonIgnore]
+        public TimeSpan OpenFor => ClosedAt - OpenedAt;
+        
         public int Number { get; set; }
         public int CommentCount { get; set; }
         public int CommentWordCount { get; set; }
