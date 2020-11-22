@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace RepoMan.Analysis
 {
     public class RepositoryHealthAnalyzer
     {
-        public RepositoryHealthSnapshot CalculateRepositoryHealthStatistics(IList<PullRequestCommentSnapshot> snapshots)
+        public RepositoryHealthSnapshot CalculateRepositoryHealthStatistics(ICollection<PullRequestCommentSnapshot> snapshots)
         {
             // No, I don't care that I could just iterate this once, and aggregate the things in a single iteration and then do the math at the end
             var medianCommentCount = snapshots.Select(s => s.CommentCount).CalculateMedian();
@@ -16,8 +17,8 @@ namespace RepoMan.Analysis
                 .Select(s => CalculateBusinessDaysOpen(s.OpenedAt, s.ClosedAt))
                 .ToList();
             var medianBusinessDaysToClose = businessDaysOpen.CalculateMedian();
-            var commentCountStdDev = snapshots.Select(s => (double) s.CommentCount).CalculatePopulationStdDeviation();
-            var wordsPerCommentStdDev = snapshots.Select(s => (double) s.CommentWordCount).CalculatePopulationStdDeviation();
+            var commentCountPopulationVariance = snapshots.Select(s => (double) s.CommentCount).CalculatePopulationVariance();
+            var wordsPerCommentPopulationVariance = snapshots.Select(s => (double) s.CommentWordCount).CalculatePopulationVariance();
 
             return new RepositoryHealthSnapshot
             {
@@ -27,8 +28,8 @@ namespace RepoMan.Analysis
                 MedianBusinessDaysToPullRequestClosure = medianBusinessDaysToClose,
                 MedianCommentCountPerPullRequest = medianCommentCount,
                 MedianWordsPerComment = medianWordsPerComment,
-                PullRequestCommentCountStdDeviation = Math.Round(commentCountStdDev, 2),
-                CommentWordCountStdDeviation = Math.Round(wordsPerCommentStdDev, 2),
+                CommentCountPopulationVariance = Math.Round(commentCountPopulationVariance, 2, MidpointRounding.AwayFromZero),
+                CommentWordCountVariance = Math.Round(wordsPerCommentPopulationVariance, 2, MidpointRounding.AwayFromZero),
             };
         }
         
@@ -55,20 +56,6 @@ namespace RepoMan.Analysis
 
             return (int) bDays;
         }
-        
-        // In spite of these being comment- and PR-level measurements, they actually reflect over *repository* health. You can't tell anything about repo health
-        // from one comment or PR in isolation. It's only in the aggregate that we can infer anything about health.
-        // We could aggregate each of these measure lower down, but pre-aggregating would ruin the statistics, and computers are fast.
-        
-        // public int MedianCommentsPerPullRequest
-        // public int MedianWordsPerComment
-        
-        // public double StdDeviationForPrCommentCount -- higher is better
-        // public double StdDeviationForCommentWordCount -- higher is better
-        
-        // public TimeSpan MedianTimeToPrClosure
-        
-        // private int BusinessDaysToPrClosure -- 1-2 business days is best
     }
     
     public class RepositoryHealthSnapshot
@@ -77,8 +64,12 @@ namespace RepoMan.Analysis
         public int PullRequestCount { get; set; }
         public int MedianCommentCountPerPullRequest { get; set; }
         public int MedianWordsPerComment { get; set; }
-        public double PullRequestCommentCountStdDeviation { get; set; }
-        public double CommentWordCountStdDeviation { get; set; }
+        public double CommentCountPopulationVariance { get; set; }
+        [JsonIgnore]
+        public double CommentCountPopulationStdDeviation => Math.Round(Math.Sqrt(CommentCountPopulationVariance), 2, MidpointRounding.AwayFromZero); 
+        public double CommentWordCountVariance { get; set; }
+        [JsonIgnore]
+        public double CommentWordCountStdDeviation => Math.Round(Math.Sqrt(CommentWordCountVariance), 2, MidpointRounding.AwayFromZero);
         public int MedianSecondsToPullRequestClosure { get; set; }
         public int MedianBusinessDaysToPullRequestClosure { get; set; }
     }

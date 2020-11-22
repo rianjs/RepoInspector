@@ -27,7 +27,7 @@ namespace RepoMan.Repository
         /// <returns>null if the pull request number is not present</returns>
         ValueTask<PullRequestDetails> GetPullRequestByNumber(int prNumber);
 
-        IAsyncEnumerable<PullRequestDetails> GetPullRequestsAsync();
+        ValueTask<IList<PullRequestDetails>> GetPullRequestsAsync();
 
         /// <summary>
         /// Returns the comments on each PR

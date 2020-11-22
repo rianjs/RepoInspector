@@ -278,15 +278,14 @@ namespace RepoMan.Repository
         /// Thread-safe, lazy, non-copy read from the in-memory cache
         /// </summary>
         /// <returns></returns>
-        public async IAsyncEnumerable<PullRequestDetails> GetPullRequestsAsync()
+        public async ValueTask<IList<PullRequestDetails>> GetPullRequestsAsync()
         {
             try
             {
                 await _byNumberLock.WaitAsync();
-                foreach (var prDetails in _byNumber.Values)
-                {
-                    yield return prDetails;
-                }
+                var prs = new List<PullRequestDetails>(_byNumber.Count);
+                prs.AddRange(_byNumber.Values);
+                return prs;
             }
             finally
             {

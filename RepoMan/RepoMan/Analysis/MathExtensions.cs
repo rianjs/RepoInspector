@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Octokit;
 
 namespace RepoMan.Analysis
 {
@@ -9,8 +10,8 @@ namespace RepoMan.Analysis
     {
         public static int CalculateMedian(this IEnumerable<int> integers)
         {
-            var longMedian = integers.Cast<long>().CalculateMedian();
-            return (int) longMedian;
+            var longMedian = integers.Select(Convert.ToInt64).CalculateMedian();
+            return Convert.ToInt32(longMedian);
         }
 
         public static TimeSpan CalculateMedian(this IEnumerable<TimeSpan> durations)

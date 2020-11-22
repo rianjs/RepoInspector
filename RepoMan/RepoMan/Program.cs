@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -45,6 +46,7 @@ namespace RepoMan
             const int number = 368;
             var prReader = new GitHubRepoPullRequestReader(owner, repo, client);
             var dosBuffer = TimeSpan.FromSeconds(0.5);
+            var repoHealthAnalyzer = new RepositoryHealthAnalyzer();
 
             var approvalStates = new[] {"APPROVED"};
             var nonApprovalStates = new[] {"CHANGES_REQUESTED", "COMMENTED", "DISMISSED", "PENDING"};
@@ -74,52 +76,31 @@ namespace RepoMan
                     jsonSerializerSettings: _jsonSerializerSettings,
                     logger: _logger);
 
-                var prCount = 0;
-                var approvals = 0;
-                var pullRequestSnapshots = new List<PullRequestCommentSnapshot>();
-                await foreach (var pr in repoHistoryMgr.GetPullRequestsAsync())
-                {
-                    prCount++;
-                    var snapshot = commentAnalyzer.CalculateCommentStatistics(pr);
-                    pullRequestSnapshots.Add(snapshot);
-                }
+                var pullRequestSnapshots = await repoHistoryMgr.GetPullRequestsAsync();
+                
+                _logger.Information($"Starting deep evaluation of {pullRequestSnapshots.Count} pull requests");
+                var singularCommentComputeTimer = Stopwatch.StartNew();
+                var singularPrSnapshots = pullRequestSnapshots
+                    .Select(pr => commentAnalyzer.CalculateCommentStatistics(pr))
+                    .ToDictionary(pr => pr.Number, pr => pr);
+                singularCommentComputeTimer.Stop();
+                _logger.Information($"Deep evaluation of {pullRequestSnapshots.Count} pull requests completed in {singularCommentComputeTimer.Elapsed.ToMicroseconds():N0} microseconds");
 
-                // PR statistics of interest:
-                // Approval count per PR
-                // Comment count per PR
-                // Most comments (pr => {})
-                
-                // COMMENTARY CHARACTERISTICS
-                // How robust is the dialog when it needs to be?
-                // HYPOTHESIS: strong teams have PRs with either a lot or very little dialog, depending on the scope of changes proposed. Small changesets are
-                // easy to approve and often have no comments. Design changes will often engender a LOT of comments. So in a health repo, you'd expect to see a 
-                // small number of comments consistently (rarely zero), and a huge number of comments once in a while, often in a PR that stays open longer than
-                // the median
-                // MEASURES:
-                // Median word count per comment (should always be > 1, otherwise it should just be an approval)
-                
-                // Comment complexity per PR (i.e. how robust was the dialog?)
-                // Median word count per comment
-                // Most 
-
-                // APPROVAL/MERGE CHARACTERISTICS
-                // PRs shouldn't get stale. They should have a turnaround time of 1-2 business days in most cases. PRs open longer than that should have a lot
-                // dialog.
-                
+                _logger.Information($"Calculating repository health statistics for {owner}:{repo} repository which has {pullRequestSnapshots.Count:N0} pull requests");
+                var repoHealthTimer = Stopwatch.StartNew();
+                var repoHealth = repoHealthAnalyzer.CalculateRepositoryHealthStatistics(singularPrSnapshots.Values);
+                repoHealthTimer.Stop();
+                _logger.Information($"Repository health statistics for {owner}:{repo} calculated in {repoHealthTimer.Elapsed.ToMicroseconds():N0} microseconds");
+                _logger.Information($"{Environment.NewLine}{JsonConvert.SerializeObject(repoHealth, _jsonSerializerSettings)}");
                 
                 // Other
                 // Commits merged directly to master
-
-                // var shallowResult = Path.Combine(_scratchDir, "shallow-prs.json");
-                // var shallowWriteTask = File.WriteAllTextAsync(shallowResult, JsonConvert.SerializeObject(closedPrs, Formatting.Indented));
-                // var successResult = Path.Combine(_scratchDir, "deep-prs.json");
-                // var deepWriteTask = File.WriteAllTextAsync(successResult, JsonConvert.SerializeObject(success, Formatting.Indented));
-                // await Task.WhenAll(shallowWriteTask, deepWriteTask);
+                
+                Console.WriteLine("Done");
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
-                // throw;
             }
         }
 
