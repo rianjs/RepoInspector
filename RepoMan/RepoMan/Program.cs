@@ -20,6 +20,7 @@ namespace RepoMan
     {
         private static readonly string _tokenPath = Path.Combine(GetScratchDirectory(), "repoman-pan.secret");
         private static readonly string _scratchDir = GetScratchDirectory();
+        private static readonly string _url = "https://github.com";
         private static readonly string _token = File.ReadAllText(_tokenPath).Trim();
         private static readonly JsonSerializerSettings _jsonSerializerSettings = GetDebugJsonSerializerSettings();
         private static readonly ILogger _logger = GetLogger();
@@ -27,15 +28,18 @@ namespace RepoMan
         static async Task Main(string[] args)
         {
             await Task.Delay(0);
-            var url = args.Length > 1
-                ? args[1]
-                : "https://github.com/microsoft";
 
-            var apiToken = args.Length > 2
-                ? args[2]
-                : _token;
+            var explicitApprovals = GetExplicitApprovals();
+            var implicitApprovals = GetImplicitApprovals();
+            var explicitNonApprovals = GetExplicitNonApprovals();
+            
+            var wordCounter = new WordCounter();
+            var approvalAnalyzer = new ApprovalAnalyzer(explicitApprovals, explicitNonApprovals, implicitApprovals);
+            var commentAnalyzer = new CommentAnalyzer(approvalAnalyzer, wordCounter);
+            var fs = new Filesystem.Filesystem();
 
-            var client = GetClient(url, apiToken);
+            // Read the repositories to check
+            var client = GetClient(_url, _token);
             await Debug(client);
         }
 
@@ -43,27 +47,12 @@ namespace RepoMan
         {
             var owner = "alex";
             var repo = "nyt-2020-election-scraper";
-            const int number = 368;
             var prReader = new GitHubRepoPullRequestReader(owner, repo, client);
             var dosBuffer = TimeSpan.FromSeconds(0.5);
             var repoHealthAnalyzer = new RepositoryHealthAnalyzer();
-
-            var approvalStates = new[] {"APPROVED"};
-            var nonApprovalStates = new[] {"CHANGES_REQUESTED", "COMMENTED", "DISMISSED", "PENDING"};
-            var implicitApprovals = new[]
-            {
-                "lgtm",
-                "ok to merge",
-                "go ahead and merge",
-                "looks good to me",
-            };
             
-
+            // For each repo to measure...
             var cachePath = Path.Combine(_scratchDir, $"{owner}-{repo}-prs.json");
-            var fs = new Filesystem.Filesystem();
-            var wordCounter = new WordCounter();
-            var approvalAnalyzer = new ApprovalAnalyzer(approvalStates, nonApprovalStates, implicitApprovals);
-            var commentAnalyzer = new CommentAnalyzer(approvalAnalyzer, wordCounter);
             
             try
             {
@@ -104,6 +93,12 @@ namespace RepoMan
             }
         }
 
+        /// <summary>
+        /// Clients are intended to be reused for each top-level URL. So you can re-use a github.com pull request reader for every repo at github.com.  
+        /// </summary>
+        /// <param name="repoUrl"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
         private static GitHubClient GetClient(string repoUrl, string token)
         {
             var github = new Uri(repoUrl);
@@ -131,9 +126,6 @@ namespace RepoMan
             new LoggerConfiguration()
                 .WriteTo.Console()
                 .CreateLogger();
-
-        public static string CreateFullPath(string fileName)
-            => Path.Combine(_scratchDir, fileName);
         
         private static JsonSerializerSettings GetDebugJsonSerializerSettings()
         {
@@ -147,6 +139,36 @@ namespace RepoMan
                 // DefaultValueHandling = DefaultValueHandling.Ignore,
                 DateFormatHandling = DateFormatHandling.IsoDateFormat,
                 Converters = new List<JsonConverter> { new StringEnumConverter(), },
+            };
+        }
+
+        private static List<string> GetImplicitApprovals()
+        {
+            return new List<string>
+            {
+                "lgtm",
+                "ok to merge",
+                "go ahead and merge",
+                "looks good to me",
+            };
+        }
+
+        private static List<string> GetExplicitNonApprovals()
+        {
+            return new List<string>
+            {
+                "CHANGES_REQUESTED",
+                "COMMENTED",
+                "DISMISSED",
+                "PENDING",
+            };
+        }
+
+        private static List<string> GetExplicitApprovals()
+        {
+            return new List<string>
+            {
+                "APPROVED"
             };
         }
     }
