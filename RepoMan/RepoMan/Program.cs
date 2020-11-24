@@ -4,13 +4,16 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Octokit;
 using RepoMan.Analysis;
+using RepoMan.Analysis.ApprovalAnalyzers;
 using RepoMan.IO;
-using RepoMan.PullRequest;
 using RepoMan.Repository;
 using Serilog;
 
@@ -19,6 +22,7 @@ namespace RepoMan
     class Program
     {
         private static readonly string _tokenPath = Path.Combine(GetScratchDirectory(), "repoman-pan.secret");
+        private static readonly string _configPath = Path.Combine(GetScratchDirectory(), "repoman-config.json");
         private static readonly string _scratchDir = GetScratchDirectory();
         private static readonly string _url = "https://github.com";
         private static readonly string _token = File.ReadAllText(_tokenPath).Trim();
@@ -27,13 +31,40 @@ namespace RepoMan
 
         static async Task Main(string[] args)
         {
-            await Task.Delay(0);
+            Console.WriteLine(Environment.CurrentDirectory);
 
-            var explicitApprovals = GetExplicitApprovals();
-            var implicitApprovals = GetImplicitApprovals();
-            var explicitNonApprovals = GetExplicitNonApprovals();
+            var configuration = new ConfigurationBuilder()
+                .AddEnvironmentVariables()
+                .AddJsonFile(_configPath, optional: false, reloadOnChange: true)
+                .Build();
+
+            var serviceCollection = new ServiceCollection()
+                .Configure<PullRequestConstants>(RepositoryKind.GitHub.ToString(),
+                    configuration.GetSection("PRConstants:GitHub"))
+                .Configure<PullRequestConstants>(RepositoryKind.BitBucket.ToString(),
+                    configuration.GetSection("PRConstants:BitBucket"))
+                .AddTransient(sp =>
+                {
+                    var prConstantsAccessor = sp.GetRequiredService<IOptionsSnapshot<PullRequestConstants>>();
+                    var prConstants = prConstantsAccessor.Get(RepositoryKind.GitHub.ToString());
+                    return new GitHubApprovalAnalyzer(
+                        prConstants.ExplicitApprovals,
+                        prConstants.ExplicitNonApprovals,
+                        prConstants.ImplicitApprovals);
+                }).AddTransient(sp =>
+                {
+                    var prConstantsAccessor = sp.GetRequiredService<IOptionsSnapshot<PullRequestConstants>>();
+                    var prConstants = prConstantsAccessor.Get(RepositoryKind.BitBucket.ToString());
+                    return new BitBucketApprovalAnalyzer(
+                        prConstants.ExplicitApprovals,
+                        prConstants.ExplicitNonApprovals,
+                        prConstants.ImplicitApprovals);
+                });
+
+            var serviceProvider = serviceCollection.BuildServiceProvider();
+
             var wordCounter = new WordCounter();
-            var approvalAnalyzer = new ApprovalAnalyzer(explicitApprovals, explicitNonApprovals, implicitApprovals);
+            var approvalAnalyzer = serviceProvider.GetRequiredService<GitHubApprovalAnalyzer>();
             var commentAnalyzer = new CommentAnalyzer(approvalAnalyzer, wordCounter);
             var repoHealthAnalyzer = new RepoHealthAnalyzer();
             var fs = new Filesystem();
@@ -116,35 +147,7 @@ namespace RepoMan
             };
         }
 
-        private static List<string> GetImplicitApprovals()
-        {
-            return new List<string>
-            {
-                "lgtm",
-                "ok to merge",
-                "go ahead and merge",
-                "looks good to me",
-            };
-        }
 
-        private static List<string> GetExplicitNonApprovals()
-        {
-            return new List<string>
-            {
-                "CHANGES_REQUESTED",
-                "COMMENTED",
-                "DISMISSED",
-                "PENDING",
-            };
-        }
-
-        private static List<string> GetExplicitApprovals()
-        {
-            return new List<string>
-            {
-                "APPROVED"
-            };
-        }
 
         private static List<WatchedRepository> GetWatchedRepositories()
         {

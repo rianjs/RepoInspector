@@ -1,6 +1,8 @@
-namespace RepoMan.PullRequest
+using RepoMan.PullRequest;
+
+namespace RepoMan.Analysis.ApprovalAnalyzers
 {
-    public interface IApprovalAnalyzer
+    interface IApprovalAnalyzer
     {
         /// <summary>
         /// Returns the number of unique approvals using a variety of analysis techniques.

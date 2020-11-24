@@ -4,12 +4,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Octokit;
 using RepoMan.Analysis;
+using RepoMan.Analysis.ApprovalAnalyzers;
 using RepoMan.PullRequest;
 using Serilog;
 
 namespace RepoMan.Repository
 {
-    public class RepoWorker :
+    class RepoWorker :
         IWorker
     {
         private readonly IRepoManager _repo;
