@@ -6,7 +6,8 @@ using RepoMan.PullRequest;
 
 namespace RepoMan.Analysis
 {
-    public class CommentAnalyzer
+    public class CommentAnalyzer :
+        ICommentAnalyzer
     {
         private static readonly StringComparison _comparison = StringComparison.OrdinalIgnoreCase;
         private readonly IApprovalAnalyzer _approvalAnalyzer;

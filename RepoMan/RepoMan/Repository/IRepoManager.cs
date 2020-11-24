@@ -5,8 +5,11 @@ using RepoMan.PullRequest;
 
 namespace RepoMan.Repository
 {
-    public interface IRepoWatcher
+    public interface IRepoManager
     {
+        string RepoOwner { get; }
+        string RepoName { get; }
+        
         /// <summary>
         /// Check the upstream git repo API for any pull requests that the cache manager doesn't know about.
         /// </summary>

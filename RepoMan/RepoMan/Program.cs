@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -36,20 +35,20 @@ namespace RepoMan
             var wordCounter = new WordCounter();
             var approvalAnalyzer = new ApprovalAnalyzer(explicitApprovals, explicitNonApprovals, implicitApprovals);
             var commentAnalyzer = new CommentAnalyzer(approvalAnalyzer, wordCounter);
+            var repoHealthAnalyzer = new RepoHealthAnalyzer();
             var fs = new Filesystem();
             var cacheManager = new FilesystemCacheManager(fs, _scratchDir, _jsonSerializerSettings);
-            var dosBuffer = TimeSpan.FromSeconds(0.5);
+            var dosBuffer = TimeSpan.FromSeconds(0.1);
             
-            // Read the list of repos to check
             var watchedRepos = GetWatchedRepositories()
                 .GroupBy(r => r.ApiToken);
 
-            var watcherInitializationQuery =
+            var repoMgrInitializationQuery =
                 from kvp in watchedRepos
                 from repo in kvp
                 let client = GetClient(repo.BaseUrl, kvp.Key)
                 let prReader = new GitHubRepoPullRequestReader(repo.Owner, repo.RepositoryName, client)
-                select RepositoryWatcher.InitializeAsync(
+                select RepositoryManager.InitializeAsync(
                     repo.Owner,
                     repo.RepositoryName,
                     prReader,
@@ -57,46 +56,15 @@ namespace RepoMan
                     dosBuffer,
                     refreshFromUpstream: true,
                     _logger);
-            var watcherInitializationTasks = watcherInitializationQuery.ToList();
+            var watcherInitializationTasks = repoMgrInitializationQuery.ToList();
             await Task.WhenAll(watcherInitializationTasks);
 
-            var initializedWatchers = watcherInitializationTasks
+            var repoWorkers = watcherInitializationTasks
                 .Select(t => t.Result)
+                .Select(rm => new RepoWorker(rm, approvalAnalyzer, commentAnalyzer, wordCounter, repoHealthAnalyzer, _logger))
                 .ToList();
             
-            // Create a BackgroundService with the collection of watchers, and update the stats every 4 hours or so
-        }
-
-        private static async Task Debug(GitHubClient client)
-        {
-            try
-            {
-                var pullRequestSnapshots = await repoHistoryMgr.GetPullRequestsAsync();
-                
-                _logger.Information($"Starting deep evaluation of {pullRequestSnapshots.Count} pull requests");
-                var singularCommentComputeTimer = Stopwatch.StartNew();
-                var singularPrSnapshots = pullRequestSnapshots
-                    .Select(pr => commentAnalyzer.CalculateCommentStatistics(pr))
-                    .ToDictionary(pr => pr.Number, pr => pr);
-                singularCommentComputeTimer.Stop();
-                _logger.Information($"Deep evaluation of {pullRequestSnapshots.Count} pull requests completed in {singularCommentComputeTimer.Elapsed.ToMicroseconds():N0} microseconds");
-
-                _logger.Information($"Calculating repository health statistics for {owner}:{repo} repository which has {pullRequestSnapshots.Count:N0} pull requests");
-                var repoHealthTimer = Stopwatch.StartNew();
-                var repoHealth = repoHealthAnalyzer.CalculateRepositoryHealthStatistics(singularPrSnapshots.Values);
-                repoHealthTimer.Stop();
-                _logger.Information($"Repository health statistics for {owner}:{repo} calculated in {repoHealthTimer.Elapsed.ToMicroseconds():N0} microseconds");
-                _logger.Information($"{Environment.NewLine}{JsonConvert.SerializeObject(repoHealth, _jsonSerializerSettings)}");
-                
-                // Other
-                // Commits merged directly to master
-                
-                Console.WriteLine("Done");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
+            // Create a BackgroundService with the collection of workers, and update the stats every 4 hours or so
         }
 
         /// <summary>

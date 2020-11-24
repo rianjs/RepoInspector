@@ -8,7 +8,7 @@ using RepoMan.PullRequest;
 namespace RepoMan.IO
 {
     public class FilesystemCacheManager :
-        IPullRequestDetailsCacheManager
+        ICacheManager
     {
         private readonly IFilesystem _fs;
         private readonly string _cacheParentDirectory;

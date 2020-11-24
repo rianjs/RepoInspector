@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace RepoMan.Analysis
 {
-    public class RepositoryHealthAnalyzer
+    public class RepoHealthAnalyzer : IRepositoryHealthAnalyzer
     {
         public RepositoryHealthSnapshot CalculateRepositoryHealthStatistics(ICollection<PullRequestCommentSnapshot> snapshots)
         {

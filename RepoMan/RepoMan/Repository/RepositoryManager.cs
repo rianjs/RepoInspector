@@ -15,30 +15,30 @@ namespace RepoMan.Repository
     /// Handles the cache management (both reading and writing) associated with historical repositories, since querying the GitHub API is slow, and rate-limited.
     /// Under the hood, many methods utilize SemaphoreSlim for read/write thread-safety, which is why many methods are async Tasks instead of values.
     /// </summary>
-    public class RepositoryWatcher :
-        IRepoWatcher
+    public class RepositoryManager :
+        IRepoManager
     {
-        private readonly string _repoOwner;
-        private readonly string _repoName;
+        public string RepoOwner { get; }
+        public string RepoName { get; }
         private readonly IRepoPullRequestReader _prReader;
-        private readonly IPullRequestDetailsCacheManager _cacheManager;
+        private readonly ICacheManager _cacheManager;
         private readonly TimeSpan _dosBuffer;
         private readonly ILogger _logger;
         
         private readonly SemaphoreSlim _byNumberLock = new SemaphoreSlim(1, 1);
         private readonly Dictionary<int, PullRequestDetails> _byNumber;
 
-        private RepositoryWatcher(
+        private RepositoryManager(
             string repoOwner,
             string repoName,
             IRepoPullRequestReader prReader,
-            IPullRequestDetailsCacheManager cacheManager,
+            ICacheManager cacheManager,
             TimeSpan prApiDosBuffer,
             Dictionary<int, PullRequestDetails> byNumber,
             ILogger logger)
         {
-            _repoName = repoName;
-            _repoOwner = repoOwner;
+            RepoOwner = repoOwner;
+            RepoName = repoName;
             _prReader = prReader;
             _cacheManager = cacheManager;
             _dosBuffer = prApiDosBuffer;
@@ -46,11 +46,11 @@ namespace RepoMan.Repository
             _byNumber = byNumber;
         }
 
-        public static async Task<IRepoWatcher> InitializeAsync(
+        public static async Task<IRepoManager> InitializeAsync(
             string repoOwner,
             string repoName,
             IRepoPullRequestReader prReader,
-            IPullRequestDetailsCacheManager cacheManager,
+            ICacheManager cacheManager,
             TimeSpan prApiDosBuffer,
             bool refreshFromUpstream,
             ILogger logger)
@@ -102,7 +102,7 @@ namespace RepoMan.Repository
             timer.Stop();
             logger.Information($"Initialized the cache with {byNumber.Count:N0} pull requests in {timer.ElapsedMilliseconds:N0}ms");
             
-            var repoHistoryMgr = new RepositoryWatcher(repoName, repoOwner, prReader, cacheManager, prApiDosBuffer, byNumber, logger);
+            var repoHistoryMgr = new RepositoryManager(repoName, repoOwner, prReader, cacheManager, prApiDosBuffer, byNumber, logger);
 
             if (!refreshFromUpstream)
             {
@@ -120,13 +120,12 @@ namespace RepoMan.Repository
         /// <returns></returns>
         public async Task RefreshFromUpstreamAsync(ItemStateFilter stateFilter)
         {
-            var prRootTask = _prReader.GetPullRequestsRootAsync(stateFilter);
-            var unknownPrs = new List<PullRequestDetails>();            
+            var prs = await _prReader.GetPullRequestsRootAsync(stateFilter);
+            var unknownPrs = new List<PullRequestDetails>(prs.Count);            
             
             try
             {
                 await _byNumberLock.WaitAsync();
-                var prs = await prRootTask;
                 var unknownPrsQuery = prs.Where(pr => !_byNumber.ContainsKey(pr.Number) || _byNumber[pr.Number].IsFullyInterrogated == false);
                 unknownPrs.AddRange(unknownPrsQuery);
             }
@@ -185,7 +184,7 @@ namespace RepoMan.Repository
                 _byNumberLock.Release();
             }
 
-            await _cacheManager.SaveAsync(updates, _repoOwner, _repoName);
+            await _cacheManager.SaveAsync(updates, RepoOwner, RepoName);
         }
 
         /// <summary>
@@ -286,17 +285,6 @@ namespace RepoMan.Repository
             {
                 _byNumberLock.Release();
             }
-        }
-
-        public async Task ExecuteAsync()
-        {
-            _logger.Information($"Starting work loop for {_repoOwner}:{_repoName}");
-            var timer = Stopwatch.StartNew();
-            
-            // Left off here
-            
-            timer.Stop();
-            _logger.Information($"Completed work loop for {_repoOwner}:{_repoName} in {timer.ElapsedMilliseconds:N0}ms");
         }
     }
 }
