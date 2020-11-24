@@ -1,25 +1,31 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using RepoMan.PullRequest;
 
-namespace RepoMan.PullRequest
+namespace RepoMan.Analysis.ApprovalAnalyzers
 {
-    public class ApprovalAnalyzer :
+    abstract class TextMatchingApprovalAnalyzer :
         IApprovalAnalyzer
     {
-        private static readonly StringComparison _comparison = StringComparison.OrdinalIgnoreCase;
+        private readonly StringComparison _comparison;
         private readonly HashSet<string> _approvalStates;
         private readonly HashSet<string> _nonApprovalStates;
         private readonly HashSet<string> _approvalTextFragments;
 
-        public ApprovalAnalyzer(
+        protected TextMatchingApprovalAnalyzer(
             IEnumerable<string> approvalStateOptions,
             IEnumerable<string> noApprovalStateOptions,
-            IEnumerable<string> approvalTextFragments)
+            IEnumerable<string> approvalTextFragments,
+            StringComparison comparison)
         {
-            _approvalStates = approvalStateOptions.ToHashSet(StringComparer.FromComparison(_comparison));
-            _nonApprovalStates = noApprovalStateOptions.ToHashSet(StringComparer.FromComparison(_comparison));
-            _approvalTextFragments = approvalTextFragments.ToHashSet(StringComparer.FromComparison(_comparison));
+            _comparison = comparison;
+            _approvalStates = approvalStateOptions?.ToHashSet(StringComparer.FromComparison(_comparison))
+                              ?? throw new ArgumentNullException(nameof(approvalStateOptions));
+            _nonApprovalStates = noApprovalStateOptions?.ToHashSet(StringComparer.FromComparison(_comparison))
+                                 ?? throw new ArgumentNullException(nameof(noApprovalStateOptions));
+            _approvalTextFragments = approvalTextFragments?.ToHashSet(StringComparer.FromComparison(_comparison))
+                                     ?? throw new ArgumentNullException(nameof(approvalTextFragments));
         }
 
         /// <summary>

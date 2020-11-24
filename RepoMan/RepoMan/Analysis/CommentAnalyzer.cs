@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
+using RepoMan.Analysis.ApprovalAnalyzers;
 using RepoMan.PullRequest;
 
 namespace RepoMan.Analysis
 {
-    public class CommentAnalyzer :
+    class CommentAnalyzer :
         ICommentAnalyzer
     {
         private static readonly StringComparison _comparison = StringComparison.OrdinalIgnoreCase;
