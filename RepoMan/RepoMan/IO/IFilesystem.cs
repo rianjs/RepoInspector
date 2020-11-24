@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace RepoMan.Filesystem
+namespace RepoMan.IO
 {
     public interface IFilesystem
     {

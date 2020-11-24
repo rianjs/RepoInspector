@@ -6,7 +6,7 @@ using Octokit;
 
 namespace RepoMan.PullRequest
 {
-    public class RepositoryDetails
+    public class TargetRepository
     {
         public long Id { get; set; }
         public string HtmlUrl { get; set; }

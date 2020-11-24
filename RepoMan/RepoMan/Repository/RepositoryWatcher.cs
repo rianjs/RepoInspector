@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using Octokit;
-using RepoMan.Filesystem;
+using RepoMan.IO;
 using RepoMan.PullRequest;
 using Serilog;
 
@@ -17,59 +15,64 @@ namespace RepoMan.Repository
     /// Handles the cache management (both reading and writing) associated with historical repositories, since querying the GitHub API is slow, and rate-limited.
     /// Under the hood, many methods utilize SemaphoreSlim for read/write thread-safety, which is why many methods are async Tasks instead of values.
     /// </summary>
-    public class RepoHistoryManager :
-        IRepoHistoryManager
+    public class RepositoryWatcher :
+        IRepoWatcher
     {
-        private readonly IFilesystem _fs;
-        private readonly string _cachePath;
-        private readonly JsonSerializerSettings _jsonSerializerSettings;
-        private readonly SemaphoreSlim _byNumberLock = new SemaphoreSlim(1, 1);
+        private readonly string _repoOwner;
+        private readonly string _repoName;
         private readonly IRepoPullRequestReader _prReader;
+        private readonly IPullRequestDetailsCacheManager _cacheManager;
         private readonly TimeSpan _dosBuffer;
-        
-        private readonly Dictionary<int, PullRequestDetails> _byNumber;
         private readonly ILogger _logger;
+        
+        private readonly SemaphoreSlim _byNumberLock = new SemaphoreSlim(1, 1);
+        private readonly Dictionary<int, PullRequestDetails> _byNumber;
 
-        private RepoHistoryManager(
-            IFilesystem fs,
-            string cachePath,
+        private RepositoryWatcher(
+            string repoOwner,
+            string repoName,
             IRepoPullRequestReader prReader,
+            IPullRequestDetailsCacheManager cacheManager,
             TimeSpan prApiDosBuffer,
-            JsonSerializerSettings jsonSerializerSettings,
             Dictionary<int, PullRequestDetails> byNumber,
             ILogger logger)
         {
-            _fs = fs;
-            _cachePath = cachePath;
+            _repoName = repoName;
+            _repoOwner = repoOwner;
             _prReader = prReader;
+            _cacheManager = cacheManager;
             _dosBuffer = prApiDosBuffer;
-            _jsonSerializerSettings = jsonSerializerSettings;
             _logger = logger;
             _byNumber = byNumber;
         }
 
-        public static async Task<RepoHistoryManager> InitializeAsync(
-            IFilesystem fs,
-            string cachePath,
+        public static async Task<IRepoWatcher> InitializeAsync(
+            string repoOwner,
+            string repoName,
             IRepoPullRequestReader prReader,
+            IPullRequestDetailsCacheManager cacheManager,
             TimeSpan prApiDosBuffer,
             bool refreshFromUpstream,
-            JsonSerializerSettings jsonSerializerSettings,
             ILogger logger)
         {
-            if (fs is null)
+            if (string.IsNullOrWhiteSpace(repoOwner))
             {
-                throw new ArgumentNullException(nameof(fs));
+                throw new ArgumentNullException(nameof(repoOwner));
             }
-
-            if (string.IsNullOrWhiteSpace(cachePath))
+            
+            if (string.IsNullOrWhiteSpace(repoName))
             {
-                throw new ArgumentNullException(nameof(cachePath));
+                throw new ArgumentNullException(nameof(repoName));
             }
-
+            
             if (prReader is null)
             {
                 throw new ArgumentNullException(nameof(prReader));
+            }
+
+            if (cacheManager is null)
+            {
+                throw new ArgumentNullException(nameof(cacheManager));
             }
             
             if (prApiDosBuffer < TimeSpan.Zero)
@@ -77,11 +80,6 @@ namespace RepoMan.Repository
                 throw new ArgumentOutOfRangeException(nameof(prApiDosBuffer));
             }
             
-            if (jsonSerializerSettings is null)
-            {
-                throw new ArgumentNullException(nameof(jsonSerializerSettings));
-            }
-
             if (logger is null)
             {
                 throw new ArgumentNullException(nameof(logger));
@@ -90,15 +88,13 @@ namespace RepoMan.Repository
             logger.Information("Initializing repository history manager cache");
             var timer = Stopwatch.StartNew();
 
-            var prs = new List<PullRequestDetails>();
+            IList<PullRequestDetails> prs = new List<PullRequestDetails>();
             try
             {
-                logger.Information($"Reading the cache file: {cachePath}");
-                var json = await fs.FileReadAllTextAsync(cachePath);
-                prs = JsonConvert.DeserializeObject<List<PullRequestDetails>>(json, jsonSerializerSettings)
-                      ?? new List<PullRequestDetails>();
+                logger.Information("Reading the cache");
+                prs = await cacheManager.LoadAsync(repoOwner, repoName);
             }
-            catch (FileNotFoundException)
+            catch (Exception)
             {
                 logger.Information("Cache file does not exist, therefore one will be created.");
             }
@@ -106,7 +102,7 @@ namespace RepoMan.Repository
             timer.Stop();
             logger.Information($"Initialized the cache with {byNumber.Count:N0} pull requests in {timer.ElapsedMilliseconds:N0}ms");
             
-            var repoHistoryMgr = new RepoHistoryManager(fs, cachePath, prReader, prApiDosBuffer, jsonSerializerSettings, byNumber, logger);
+            var repoHistoryMgr = new RepositoryWatcher(repoName, repoOwner, prReader, cacheManager, prApiDosBuffer, byNumber, logger);
 
             if (!refreshFromUpstream)
             {
@@ -188,9 +184,8 @@ namespace RepoMan.Repository
             {
                 _byNumberLock.Release();
             }
-            
-            var json = JsonConvert.SerializeObject(updates, _jsonSerializerSettings);
-            await _fs.FileWriteAllTextAsync(_cachePath, json);
+
+            await _cacheManager.SaveAsync(updates, _repoOwner, _repoName);
         }
 
         /// <summary>
@@ -291,6 +286,17 @@ namespace RepoMan.Repository
             {
                 _byNumberLock.Release();
             }
+        }
+
+        public async Task ExecuteAsync()
+        {
+            _logger.Information($"Starting work loop for {_repoOwner}:{_repoName}");
+            var timer = Stopwatch.StartNew();
+            
+            // Left off here
+            
+            timer.Stop();
+            _logger.Information($"Completed work loop for {_repoOwner}:{_repoName} in {timer.ElapsedMilliseconds:N0}ms");
         }
     }
 }

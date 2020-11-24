@@ -5,7 +5,7 @@ using RepoMan.PullRequest;
 
 namespace RepoMan.Repository
 {
-    public interface IRepoHistoryManager
+    public interface IRepoWatcher
     {
         /// <summary>
         /// Check the upstream git repo API for any pull requests that the cache manager doesn't know about.

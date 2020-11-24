@@ -1,6 +1,9 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+
 namespace RepoMan.Repository
 {
-    public class RepositoryDetails
+    public class WatchedRepository
     {
         /// <summary>
         /// The URL for the git instance. This might be "github.com" or "github.company.com" or "company.com/git"
@@ -15,7 +18,12 @@ namespace RepoMan.Repository
         /// <summary>
         /// The repository name
         /// </summary>
-        public string Repository { get; set; }
+        public string RepositoryName { get; set; }
+        
+        /// <summary>
+        /// Optional repository description
+        /// </summary>
+        public string Description { get; set; }
         
         /// <summary>
         /// API token for making requests to the API
@@ -25,6 +33,7 @@ namespace RepoMan.Repository
         /// <summary>
         /// 
         /// </summary>
+        [JsonConverter(typeof(StringEnumConverter))]
         public RepositoryKind RepositoryKind { get; set; }
     }
 }

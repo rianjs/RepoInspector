@@ -10,6 +10,7 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Octokit;
 using RepoMan.Analysis;
+using RepoMan.IO;
 using RepoMan.PullRequest;
 using RepoMan.Repository;
 using Serilog;
@@ -32,39 +33,44 @@ namespace RepoMan
             var explicitApprovals = GetExplicitApprovals();
             var implicitApprovals = GetImplicitApprovals();
             var explicitNonApprovals = GetExplicitNonApprovals();
-            
             var wordCounter = new WordCounter();
             var approvalAnalyzer = new ApprovalAnalyzer(explicitApprovals, explicitNonApprovals, implicitApprovals);
             var commentAnalyzer = new CommentAnalyzer(approvalAnalyzer, wordCounter);
-            var fs = new Filesystem.Filesystem();
+            var fs = new Filesystem();
+            var cacheManager = new FilesystemCacheManager(fs, _scratchDir, _jsonSerializerSettings);
+            var dosBuffer = TimeSpan.FromSeconds(0.5);
+            
+            // Read the list of repos to check
+            var watchedRepos = GetWatchedRepositories()
+                .GroupBy(r => r.ApiToken);
 
-            // Read the repositories to check
-            var client = GetClient(_url, _token);
-            await Debug(client);
+            var watcherInitializationQuery =
+                from kvp in watchedRepos
+                from repo in kvp
+                let client = GetClient(repo.BaseUrl, kvp.Key)
+                let prReader = new GitHubRepoPullRequestReader(repo.Owner, repo.RepositoryName, client)
+                select RepositoryWatcher.InitializeAsync(
+                    repo.Owner,
+                    repo.RepositoryName,
+                    prReader,
+                    cacheManager,
+                    dosBuffer,
+                    refreshFromUpstream: true,
+                    _logger);
+            var watcherInitializationTasks = watcherInitializationQuery.ToList();
+            await Task.WhenAll(watcherInitializationTasks);
+
+            var initializedWatchers = watcherInitializationTasks
+                .Select(t => t.Result)
+                .ToList();
+            
+            // Create a BackgroundService with the collection of watchers, and update the stats every 4 hours or so
         }
 
         private static async Task Debug(GitHubClient client)
         {
-            var owner = "alex";
-            var repo = "nyt-2020-election-scraper";
-            var prReader = new GitHubRepoPullRequestReader(owner, repo, client);
-            var dosBuffer = TimeSpan.FromSeconds(0.5);
-            var repoHealthAnalyzer = new RepositoryHealthAnalyzer();
-            
-            // For each repo to measure...
-            var cachePath = Path.Combine(_scratchDir, $"{owner}-{repo}-prs.json");
-            
             try
             {
-                IRepoHistoryManager repoHistoryMgr = await RepoHistoryManager.InitializeAsync(
-                    fs: fs,
-                    cachePath: cachePath,
-                    prReader: prReader,
-                    prApiDosBuffer: dosBuffer,
-                    refreshFromUpstream: true,
-                    jsonSerializerSettings: _jsonSerializerSettings,
-                    logger: _logger);
-
                 var pullRequestSnapshots = await repoHistoryMgr.GetPullRequestsAsync();
                 
                 _logger.Information($"Starting deep evaluation of {pullRequestSnapshots.Count} pull requests");
@@ -169,6 +175,31 @@ namespace RepoMan
             return new List<string>
             {
                 "APPROVED"
+            };
+        }
+
+        private static List<WatchedRepository> GetWatchedRepositories()
+        {
+            return new List<WatchedRepository>
+            {
+                new WatchedRepository
+                {
+                    Owner = "alex",
+                    RepositoryName = "nyt-2020-election-scraper",
+                    Description = "NYT election data scraper and renderer",
+                    ApiToken = _token,
+                    BaseUrl = "https://github.com",
+                    RepositoryKind = RepositoryKind.GitHub,
+                },
+                new WatchedRepository
+                {
+                    Owner = "rianjs",
+                    RepositoryName = "ical.net",
+                    Description = "RFC-5545 ical data library",
+                    ApiToken = _token,
+                    BaseUrl = "https://github.com",
+                    RepositoryKind = RepositoryKind.GitHub,
+                },
             };
         }
     }

@@ -1,7 +1,7 @@
 using System.IO;
 using System.Threading.Tasks;
 
-namespace RepoMan.Filesystem
+namespace RepoMan.IO
 {
     public class Filesystem : IFilesystem
     {
