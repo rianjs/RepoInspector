@@ -13,6 +13,7 @@ using Newtonsoft.Json.Serialization;
 using Octokit;
 using RepoMan.Analysis;
 using RepoMan.Analysis.ApprovalAnalyzers;
+using RepoMan.Analysis.Counters;
 using RepoMan.IO;
 using RepoMan.Repository;
 using Serilog;

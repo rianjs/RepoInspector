@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Octokit;
 using RepoMan.Analysis;
 using RepoMan.Analysis.ApprovalAnalyzers;
+using RepoMan.Analysis.Counters;
 using Serilog;
 
 namespace RepoMan.Repository
@@ -16,7 +17,7 @@ namespace RepoMan.Repository
         private readonly string _fullName;
         private readonly IApprovalAnalyzer _approvalAnalyzer;
         private readonly ICommentAnalyzer _commentAnalyzer;
-        private readonly IWordCounter _wordCounter;
+        private readonly ICounter _wordCounter;
         private readonly IRepositoryHealthAnalyzer _repoHealthAnalyzer;
         private readonly ILogger _logger;
 
@@ -24,7 +25,7 @@ namespace RepoMan.Repository
             IRepoManager repo,
             IApprovalAnalyzer approvalAnalyzer,
             ICommentAnalyzer commentAnalyzer,
-            IWordCounter wordCounter,
+            ICounter wordCounter,
             IRepositoryHealthAnalyzer repoHealthAnalyzer,
             ILogger logger)
         {

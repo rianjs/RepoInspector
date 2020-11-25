@@ -1,16 +1,16 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace RepoMan.Analysis
+namespace RepoMan.Analysis.Counters
 {
-    public class WordCounter :
-        IWordCounter
+    class WordCounter :
+        ICounter
     {
         private readonly Regex _counter = new Regex(
             pattern: @"[\w]+",
             options: RegexOptions.Multiline| RegexOptions.CultureInvariant | RegexOptions.Compiled
         );
 
-        public int CountWords(string s) =>
+        public int Count(string s) =>
             string.IsNullOrWhiteSpace(s)
                 ? 0
                 : _counter.Matches(s).Count;
