@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using RepoMan.PullRequest;
+using RepoMan.Repository;
 
 namespace RepoMan.IO
 {

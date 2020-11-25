@@ -4,7 +4,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Octokit;
 
-namespace RepoMan.PullRequest
+namespace RepoMan.Repository
 {
     public class TargetRepository
     {

@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using RepoMan.PullRequest;
+using RepoMan.Repository;
 
 namespace RepoMan.Analysis
 {

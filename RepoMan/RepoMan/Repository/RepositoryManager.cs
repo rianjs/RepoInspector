@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Octokit;
 using RepoMan.IO;
-using RepoMan.PullRequest;
 using Serilog;
 
 namespace RepoMan.Repository
