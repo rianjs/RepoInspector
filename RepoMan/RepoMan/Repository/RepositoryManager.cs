@@ -102,7 +102,7 @@ namespace RepoMan.Repository
             timer.Stop();
             logger.Information($"Initialized the cache with {byNumber.Count:N0} pull requests in {timer.ElapsedMilliseconds:N0}ms");
             
-            var repoHistoryMgr = new RepositoryManager(repoName, repoOwner, prReader, cacheManager, prApiDosBuffer, byNumber, logger);
+            var repoHistoryMgr = new RepositoryManager(repoOwner, repoName, prReader, cacheManager, prApiDosBuffer, byNumber, logger);
 
             if (!refreshFromUpstream)
             {
