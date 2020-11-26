@@ -1,9 +1,9 @@
 using System.Text.RegularExpressions;
 
-namespace RepoMan.Analysis.Counters
+namespace RepoMan.Analysis.Counters.Comments
 {
     class CodeFragmentCounter :
-        ICounter
+        ICommentCounter
     {
         // This one doesn't support balanced ticks. I.e. ```foo``` is rendered the same as ``foo``. Maybe we could extend this later, but I don't have
         // time to become an expert on balancing groups in .NET regular expressions while my daughter is taking a nap.
@@ -16,7 +16,7 @@ namespace RepoMan.Analysis.Counters
     }
     
     class CodeFenceCounter :
-        ICounter
+        ICommentCounter
     {
         // Be very careful when messing with this -- it wasn't lifted off StackOverflow or whatever, because the SO implementations are incomplete and/or
         // wrong at the edges. I went to GH, and tried dumb things to see how they were rendered, and then replicated the business rules here, and in the unit

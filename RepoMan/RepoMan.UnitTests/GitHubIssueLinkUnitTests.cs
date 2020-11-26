@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
 using RepoMan.Analysis.Counters;
+using RepoMan.Analysis.Counters.Comments;
 
 namespace RepoMan.UnitTests
 {

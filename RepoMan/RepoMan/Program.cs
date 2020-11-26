@@ -14,6 +14,7 @@ using Octokit;
 using RepoMan.Analysis;
 using RepoMan.Analysis.ApprovalAnalyzers;
 using RepoMan.Analysis.Counters;
+using RepoMan.Analysis.Counters.Comments;
 using RepoMan.IO;
 using RepoMan.Repository;
 using Serilog;

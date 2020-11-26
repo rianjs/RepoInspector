@@ -1,9 +1,9 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace RepoMan.Analysis.Counters
+namespace RepoMan.Analysis.Counters.Comments
 {
     class WordCounter :
-        ICounter
+        ICommentCounter
     {
         private readonly Regex _counter = new Regex(
             pattern: @"[\w]+",

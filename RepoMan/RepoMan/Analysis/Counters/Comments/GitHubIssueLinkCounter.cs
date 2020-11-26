@@ -2,13 +2,13 @@ using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace RepoMan.Analysis.Counters
+namespace RepoMan.Analysis.Counters.Comments
 {
     /// <summary>
     /// Pull requests are just issues with code. The numbers associated with them are auto-incrementing across both PRs and Issues. 
     /// </summary>
     class GitHubIssueLinkCounter :
-        ICounter
+        ICommentCounter
     {
         private static readonly Regex _issue = new Regex(@"#([\d]+)", RegexOptions.Compiled | RegexOptions.Multiline);
         

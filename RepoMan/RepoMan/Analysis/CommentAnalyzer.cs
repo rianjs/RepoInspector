@@ -4,6 +4,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using RepoMan.Analysis.ApprovalAnalyzers;
 using RepoMan.Analysis.Counters;
+using RepoMan.Analysis.Counters.Comments;
 using RepoMan.Repository;
 
 namespace RepoMan.Analysis
@@ -13,9 +14,9 @@ namespace RepoMan.Analysis
     {
         private static readonly StringComparison _comparison = StringComparison.OrdinalIgnoreCase;
         private readonly IApprovalAnalyzer _approvalAnalyzer;
-        private readonly ICounter _wordCounter;
+        private readonly ICommentCounter _wordCounter;
 
-        public CommentAnalyzer(IApprovalAnalyzer approvalAnalyzer, ICounter wordCounter)
+        public CommentAnalyzer(IApprovalAnalyzer approvalAnalyzer, ICommentCounter wordCounter)
         {
             _approvalAnalyzer = approvalAnalyzer ?? throw new ArgumentNullException(nameof(approvalAnalyzer));
             _wordCounter = wordCounter ?? throw new ArgumentNullException(nameof(wordCounter));

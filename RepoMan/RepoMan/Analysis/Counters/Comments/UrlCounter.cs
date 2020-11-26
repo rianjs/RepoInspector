@@ -1,9 +1,9 @@
 using System.Text.RegularExpressions;
 
-namespace RepoMan.Analysis.Counters
+namespace RepoMan.Analysis.Counters.Comments
 {
     class UrlCounter :
-        ICounter
+        ICommentCounter
     {
         private static readonly Regex _url = new Regex(@"(https?):\/\/[^\s$.?#].[^\s]*", RegexOptions.Compiled | RegexOptions.Multiline);
 

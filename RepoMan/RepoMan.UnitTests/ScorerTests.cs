@@ -1,6 +1,7 @@
 using System;
 using NUnit.Framework;
 using RepoMan.Analysis.Counters;
+using RepoMan.Analysis.Counters.Comments;
 using RepoMan.Analysis.Scoring;
 
 namespace RepoMan.UnitTests

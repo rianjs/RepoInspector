@@ -1,4 +1,4 @@
-namespace RepoMan.Analysis.Scoring
+namespace RepoMan.Analysis.Scoring.PullRequests
 {
     class ApprovalScorer :
         Scorer
