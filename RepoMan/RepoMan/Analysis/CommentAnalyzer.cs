@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using RepoMan.Analysis.ApprovalAnalyzers;
-using RepoMan.PullRequest;
+using RepoMan.Repository;
 
 namespace RepoMan.Analysis
 {

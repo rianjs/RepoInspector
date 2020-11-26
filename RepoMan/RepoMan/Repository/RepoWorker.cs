@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Octokit;
 using RepoMan.Analysis;
 using RepoMan.Analysis.ApprovalAnalyzers;
-using RepoMan.PullRequest;
 using Serilog;
 
 namespace RepoMan.Repository

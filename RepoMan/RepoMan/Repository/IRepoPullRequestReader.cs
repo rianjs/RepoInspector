@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Octokit;
-using RepoMan.PullRequest;
 
 namespace RepoMan.Repository
 {
