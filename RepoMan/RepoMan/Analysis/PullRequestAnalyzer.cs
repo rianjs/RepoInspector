@@ -8,12 +8,13 @@ using RepoMan.Repository;
 
 namespace RepoMan.Analysis
 {
-    class CommentAnalyzer :
-        ICommentAnalyzer
+    class PullRequestAnalyzer :
+        IPullRequestAnalyzer
     {
-        private readonly Dictionary<string, Scorer> _scorers;
+        // TODO: Nothing in this implementation considers anything outside of pull requests, but often commits are made directly to main
+        private readonly Dictionary<string, PullRequestScorer> _scorers;
 
-        public CommentAnalyzer(IApprovalAnalyzer approvalAnalyzer, IEnumerable<Scorer> scorers)
+        public PullRequestAnalyzer(IApprovalAnalyzer approvalAnalyzer, IEnumerable<PullRequestScorer> scorers)
         {
             _scorers = scorers?.ToDictionary(s => s.Attribute, s => s, StringComparer.Ordinal)
                 ?? throw new ArgumentNullException(nameof(scorers));

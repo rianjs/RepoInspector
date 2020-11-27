@@ -33,6 +33,10 @@ namespace RepoMan
         static async Task Main(string[] args)
         {
             Console.WriteLine(Environment.CurrentDirectory);
+            
+            // There's probably an idiomatic way to tuck these into the DI container as referenceable values...
+            var dosBuffer = TimeSpan.FromSeconds(0.1);
+            // Also include: cache path, scratch dir, etc. All the static readonlys above
 
             var configuration = new ConfigurationBuilder()
                 .AddEnvironmentVariables()
@@ -60,17 +64,26 @@ namespace RepoMan
                         prConstants.ExplicitApprovals,
                         prConstants.ExplicitNonApprovals,
                         prConstants.ImplicitApprovals);
-                });
+                })
+                // Reusable building blocks
+                .AddSingleton<IFilesystem>(sp => new Filesystem())
+                .AddSingleton<ICacheManager>(sp => new FilesystemCacheManager(sp.GetRequiredService<IFilesystem>(), _scratchDir, _jsonSerializerSettings))
+                // CommentScorers
+                .AddSingleton<CommentExtractorScorer, UrlScorer>()
+                .AddSingleton<CommentExtractorScorer, CodeFenceScorer>()
+                .AddSingleton<CommentExtractorScorer, CodeFragmentScorer>()
+                .AddSingleton<CommentExtractorScorer, GitHubIssueLinkScorer>()
+                // PullRequestScorers
+                .AddSingleton<PullRequestScorer>(sp => new ApprovalScorer(sp.GetRequiredService<IApprovalAnalyzer>()))
+                .AddSingleton<PullRequestScorer>(sp => new CommentCountScorer(sp.GetRequiredService<WordCountScorer>()))
+                .AddSingleton<PullRequestScorer, WordCountScorer>()
+                .AddSingleton<PullRequestScorer, BusinessDaysScorer>()
+                .AddSingleton<PullRequestScorer, UniqueCommenterScorer>()
+                // Roll it all up into the orchestrators...
+                .AddSingleton(sp => new PullRequestAnalyzer(sp.GetRequiredService<IApprovalAnalyzer>(), sp.GetServices<PullRequestScorer>()))
+                .AddSingleton(sp => new RepositoryAnalyzer());
 
             var serviceProvider = serviceCollection.BuildServiceProvider();
-
-            // var wordCounter = new WordCounter();
-            var approvalAnalyzer = serviceProvider.GetRequiredService<GitHubApprovalAnalyzer>();
-            // var commentAnalyzer = new CommentAnalyzer(approvalAnalyzer, wordCounter);
-            var repoHealthAnalyzer = new RepoHealthAnalyzer();
-            var fs = new Filesystem();
-            var cacheManager = new FilesystemCacheManager(fs, _scratchDir, _jsonSerializerSettings);
-            var dosBuffer = TimeSpan.FromSeconds(0.1);
             
             var watchedRepos = GetWatchedRepositories()
                 .GroupBy(r => r.ApiToken);
@@ -84,17 +97,17 @@ namespace RepoMan
                     repo.Owner,
                     repo.RepositoryName,
                     prReader,
-                    cacheManager,
+                    serviceProvider.GetRequiredService<ICacheManager>(),
                     dosBuffer,
                     refreshFromUpstream: true,
                     _logger);
             var watcherInitializationTasks = repoMgrInitializationQuery.ToList();
             await Task.WhenAll(watcherInitializationTasks);
-
-            // var repoWorkers = watcherInitializationTasks
-            //     .Select(t => t.Result)
-            //     .Select(rm => new RepoWorker(rm, approvalAnalyzer, commentAnalyzer, wordCounter, repoHealthAnalyzer, _logger))
-            //     .ToList();
+            
+            var repoWorkers = watcherInitializationTasks
+                .Select(t => t.Result)
+                // .Select(rm => new RepoWorker(rm, ))
+                .ToList();
             
             // Create a BackgroundService with the collection of workers, and update the stats every 4 hours or so
         }

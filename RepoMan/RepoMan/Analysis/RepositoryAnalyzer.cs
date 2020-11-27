@@ -4,7 +4,8 @@ using System.Linq;
 
 namespace RepoMan.Analysis
 {
-    public class RepoHealthAnalyzer : IRepositoryHealthAnalyzer
+    public class RepositoryAnalyzer :
+        IRepositoryAnalyzer
     {
         public RepositoryHealthSnapshot CalculateRepositoryHealthStatistics(ICollection<PullRequestCommentSnapshot> snapshots)
         {
