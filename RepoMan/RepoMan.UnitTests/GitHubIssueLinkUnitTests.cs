@@ -1,18 +1,28 @@
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
-using RepoMan.Analysis.Counters;
-using RepoMan.Analysis.Counters.Comments;
+using RepoMan.Analysis.Scoring;
+using RepoMan.Repository;
 
 namespace RepoMan.UnitTests
 {
     public class GitHubIssueLinkUnitTests
     {
-        private static readonly GitHubIssueLinkCounter _issueCounter = new GitHubIssueLinkCounter();
+        private static readonly GitHubIssueLinkScorer _issueCounter = new GitHubIssueLinkScorer();
         
         [Test, TestCaseSource(nameof(IssueCounterTestCases))]
         public int GitHubIssueLinkTests(string s)
-            => _issueCounter.Count(s);
+        {
+            var prDetails = new PullRequestDetails
+            {
+                CommitComments = new List<Comment>
+                {
+                    new Comment { Text = s, }
+                },
+            };
+            return _issueCounter.Count(prDetails);
+        }
 
         public static IEnumerable<ITestCaseData> IssueCounterTestCases()
         {

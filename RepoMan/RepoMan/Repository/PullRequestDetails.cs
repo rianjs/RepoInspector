@@ -59,7 +59,7 @@ namespace RepoMan.Repository
         
         public PullRequestDetails(){}
 
-        public PullRequestDetails(Octokit.PullRequest pullRequest)
+        public PullRequestDetails(PullRequest pullRequest)
         {
             if (pullRequest is null)
             {

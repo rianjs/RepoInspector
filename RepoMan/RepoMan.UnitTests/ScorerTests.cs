@@ -1,44 +1,56 @@
 using System;
+using System.Collections.Generic;
 using NUnit.Framework;
-using RepoMan.Analysis.Counters;
-using RepoMan.Analysis.Counters.Comments;
+using NUnit.Framework.Interfaces;
 using RepoMan.Analysis.Scoring;
+using RepoMan.Repository;
 
 namespace RepoMan.UnitTests
 {
     public class ScorerTests
     {
-        private static readonly CodeFragmentCounter _fragmentCounter = new CodeFragmentCounter();
-        private static readonly CodeFenceCounter _fenceCounter = new CodeFenceCounter();
-        
-        [Test]
-        public void WordCountScorerTests()
-        {
-            var wcScorer = new WordCountScorer();
-            
-            Assert.IsTrue(Math.Abs(wcScorer.ScoreMultiplier - 0.1d) < double.Epsilon);
-            Assert.IsTrue(Math.Abs(wcScorer.GetScore(20) - 2d) < double.Epsilon);
-        }
-
-        [Test]
-        public void CodeBlockScoreTests()
-        {
-            var cbScorer = new CodeFenceScorer();
-            Assert.IsTrue(Math.Abs(cbScorer.ScoreMultiplier - 10d) < double.Epsilon);
-        }
+        private static readonly DateTimeOffset _now = DateTimeOffset.Now;
+        private static readonly CodeFragmentScorer _fragmentScorer = new CodeFragmentScorer();
+        private static readonly CodeFenceScorer _fenceScorer = new CodeFenceScorer();
 
         [Test]
         public void BigStringTest()
         {
+            const double expectedScore = 54d;
+            var bigComment = new Comment
+            {
+                // CreatedAt = _now,
+                // Id = 987654321,
+                Text = CodeBlockTests.FiveMatchesFromGitHub,
+            };
+            
+            var prDetail = new PullRequestDetails
+            {
+                CommitComments = new List<Comment>{bigComment},
+            };
+            
             // Crazy github string has 5 code fences, and 2 code fragments = score of 54
-            var codeFragments = _fragmentCounter.Count(CodeBlockTests.FiveMatchesFromGitHub);
-            var fragmentScore = new CodeFragmentScorer().GetScore(codeFragments);
-            var codeFences = _fenceCounter.Count(CodeBlockTests.FiveMatchesFromGitHub);
-            var fenceScore = new CodeFenceScorer().GetScore(codeFences);
-
-            var codeScore = fragmentScore + fenceScore;
-            var shouldBeZero = 54d - codeScore;
+            // var codeFragments = _fragmentScorer.Count(prDetail);
+            var fragmentScore = _fragmentScorer.GetScore(prDetail);
+            // var codeFences = _fenceScorer.Count(CodeBlockTests.FiveMatchesFromGitHub);
+            var fenceScore = new CodeFenceScorer().GetScore(prDetail);
+            
+            var codeScore = fragmentScore.Points + fenceScore.Points;
+            var shouldBeZero = expectedScore - codeScore;
             Assert.IsTrue(Math.Abs(shouldBeZero) < double.Epsilon);
+        }
+
+        private static PullRequestDetails GetPullRequestDetails()
+        {
+            return new PullRequestDetails
+            {
+                OpenedAt = _now,
+                ClosedAt = _now + TimeSpan.FromHours(1),
+                Id = 1233456789,
+                Number = 123,
+                CommitComments = new List<Comment>(),
+                IsFullyInterrogated = true,
+            };
         }
     }
 }

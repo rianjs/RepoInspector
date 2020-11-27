@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
 
 namespace RepoMan.Analysis
 {
@@ -13,10 +12,7 @@ namespace RepoMan.Analysis
             var medianCommentCount = snapshots.Select(s => s.CommentCount).CalculateMedian();
             var medianWordsPerComment = snapshots.Select(s => s.CommentWordCount).CalculateMedian();
             var medianTimeToClosure = snapshots.Select(s => s.OpenFor).CalculateMedian();
-            var businessDaysOpen = snapshots
-                .Select(s => CalculateBusinessDaysOpen(s.OpenedAt, s.ClosedAt))
-                .ToList();
-            var medianBusinessDaysToClose = businessDaysOpen.CalculateMedian();
+            var medianBusinessDaysToClose = snapshots.Select(s => s.BusinessDaysOpen).CalculateMedian();
             var commentCountPopulationVariance = snapshots.Select(s => (double) s.CommentCount).CalculatePopulationVariance();
             var wordsPerCommentPopulationVariance = snapshots.Select(s => (double) s.CommentWordCount).CalculatePopulationVariance();
 
@@ -32,30 +28,6 @@ namespace RepoMan.Analysis
                 CommentWordCountVariance = Math.Round(wordsPerCommentPopulationVariance, 2, MidpointRounding.AwayFromZero),
             };
         }
-        
-        private int CalculateBusinessDaysOpen(DateTimeOffset open, DateTimeOffset close)
-        {
-            var fractionalDaysOpen = (close - open).TotalDays;
-            if (fractionalDaysOpen < 1d)
-            {
-                return close.DayOfWeek == DayOfWeek.Saturday || close.DayOfWeek == DayOfWeek.Sunday
-                    ? 0
-                    : 1;
-            }
-            
-            var bDays = (fractionalDaysOpen * 5 - (open.DayOfWeek - close.DayOfWeek) * 2) / 7;
-            if (open.DayOfWeek == DayOfWeek.Saturday)
-            {
-                bDays--;
-            }
-
-            if (close.DayOfWeek == DayOfWeek.Sunday)
-            {
-                bDays--;
-            }
-
-            return (int) bDays;
-        }
     }
     
     public class RepositoryHealthSnapshot
@@ -65,10 +37,8 @@ namespace RepoMan.Analysis
         public int MedianCommentCountPerPullRequest { get; set; }
         public int MedianWordsPerComment { get; set; }
         public double CommentCountPopulationVariance { get; set; }
-        [JsonIgnore]
         public double CommentCountPopulationStdDeviation => Math.Round(Math.Sqrt(CommentCountPopulationVariance), 2, MidpointRounding.AwayFromZero); 
         public double CommentWordCountVariance { get; set; }
-        [JsonIgnore]
         public double CommentWordCountStdDeviation => Math.Round(Math.Sqrt(CommentWordCountVariance), 2, MidpointRounding.AwayFromZero);
         public int MedianSecondsToPullRequestClosure { get; set; }
         public int MedianBusinessDaysToPullRequestClosure { get; set; }

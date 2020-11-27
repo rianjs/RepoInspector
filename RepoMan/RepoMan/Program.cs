@@ -13,8 +13,7 @@ using Newtonsoft.Json.Serialization;
 using Octokit;
 using RepoMan.Analysis;
 using RepoMan.Analysis.ApprovalAnalyzers;
-using RepoMan.Analysis.Counters;
-using RepoMan.Analysis.Counters.Comments;
+using RepoMan.Analysis.Scoring;
 using RepoMan.IO;
 using RepoMan.Repository;
 using Serilog;
@@ -65,9 +64,9 @@ namespace RepoMan
 
             var serviceProvider = serviceCollection.BuildServiceProvider();
 
-            var wordCounter = new WordCounter();
+            // var wordCounter = new WordCounter();
             var approvalAnalyzer = serviceProvider.GetRequiredService<GitHubApprovalAnalyzer>();
-            var commentAnalyzer = new CommentAnalyzer(approvalAnalyzer, wordCounter);
+            // var commentAnalyzer = new CommentAnalyzer(approvalAnalyzer, wordCounter);
             var repoHealthAnalyzer = new RepoHealthAnalyzer();
             var fs = new Filesystem();
             var cacheManager = new FilesystemCacheManager(fs, _scratchDir, _jsonSerializerSettings);
@@ -92,10 +91,10 @@ namespace RepoMan
             var watcherInitializationTasks = repoMgrInitializationQuery.ToList();
             await Task.WhenAll(watcherInitializationTasks);
 
-            var repoWorkers = watcherInitializationTasks
-                .Select(t => t.Result)
-                .Select(rm => new RepoWorker(rm, approvalAnalyzer, commentAnalyzer, wordCounter, repoHealthAnalyzer, _logger))
-                .ToList();
+            // var repoWorkers = watcherInitializationTasks
+            //     .Select(t => t.Result)
+            //     .Select(rm => new RepoWorker(rm, approvalAnalyzer, commentAnalyzer, wordCounter, repoHealthAnalyzer, _logger))
+            //     .ToList();
             
             // Create a BackgroundService with the collection of workers, and update the stats every 4 hours or so
         }

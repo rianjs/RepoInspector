@@ -1,22 +1,20 @@
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
-using RepoMan.Analysis.Counters;
-using RepoMan.Analysis.Counters.Comments;
+using RepoMan.Analysis.Scoring;
 
 namespace RepoMan.UnitTests
 {
     public class CodeBlockTests
     {
-        private static readonly CodeFragmentCounter _fragmentCounter = new CodeFragmentCounter();
-        private static readonly CodeFenceCounter _fenceCounter = new CodeFenceCounter();
+        private static readonly CodeFragmentScorer _fragmentCounter = new CodeFragmentScorer();
+        private static readonly CodeFenceScorer _fenceCounter = new CodeFenceScorer();
         const string s = "```this is not a code block``` but it is a code fragment, as is `this`!";
 
         [Test, TestCaseSource(nameof(CodeFenceTestCases))]
         public int CodeFenceTests(string s)
-        {
-            return _fenceCounter.Count(s);
-        }
+            => _fenceCounter.Extract(s).Count();
 
         public static IEnumerable<ITestCaseData> CodeFenceTestCases()
         {
@@ -89,9 +87,7 @@ namespace RepoMan.UnitTests
         
         [Test, TestCaseSource(nameof(CodeFragmentTestCases))]
         public int CodeFragmentTests(string s)
-        {
-            return _fragmentCounter.Count(s);
-        }
+            => _fragmentCounter.Extract(s).Count();
 
         public static IEnumerable<ITestCaseData> CodeFragmentTestCases()
         {
