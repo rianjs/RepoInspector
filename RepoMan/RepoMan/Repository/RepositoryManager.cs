@@ -19,9 +19,9 @@ namespace RepoMan.Repository
     {
         public string RepoOwner { get; }
         public string RepoName { get; }
-        private readonly string _repoTag;
+        private readonly string _fullName;
         private readonly IRepoPullRequestReader _prReader;
-        private readonly ICacheManager _cacheManager;
+        private readonly IPullRequestCacheManager _cacheManager;
         private readonly TimeSpan _dosBuffer;
         private readonly ILogger _logger;
         
@@ -31,15 +31,16 @@ namespace RepoMan.Repository
         private RepositoryManager(
             string repoOwner,
             string repoName,
+            string fullName,
             IRepoPullRequestReader prReader,
-            ICacheManager cacheManager,
+            IPullRequestCacheManager cacheManager,
             TimeSpan prApiDosBuffer,
             Dictionary<int, PullRequestDetails> byNumber,
             ILogger logger)
         {
             RepoOwner = repoOwner;
             RepoName = repoName;
-            _repoTag = $"{repoOwner}:{repoName}";
+            _fullName = fullName;
             _prReader = prReader;
             _cacheManager = cacheManager;
             _dosBuffer = prApiDosBuffer;
@@ -51,7 +52,7 @@ namespace RepoMan.Repository
             string repoOwner,
             string repoName,
             IRepoPullRequestReader prReader,
-            ICacheManager cacheManager,
+            IPullRequestCacheManager cacheManager,
             TimeSpan prApiDosBuffer,
             bool refreshFromUpstream,
             ILogger logger)
@@ -85,25 +86,27 @@ namespace RepoMan.Repository
             {
                 throw new ArgumentNullException(nameof(logger));
             }
+
+            var fullName = $"{repoOwner}:{repoName}";
             
-            logger.Information("Initializing repository history manager cache");
+            logger.Information($"{fullName} initializing the repository manager");
             var timer = Stopwatch.StartNew();
 
             IList<PullRequestDetails> prs = new List<PullRequestDetails>();
             try
             {
-                logger.Information("Reading the cache");
+                logger.Information($"{fullName} reading the cache");
                 prs = await cacheManager.LoadAsync(repoOwner, repoName);
             }
             catch (Exception)
             {
-                logger.Information("Cache file does not exist, therefore one will be created.");
+                logger.Information($"{fullName} cache file does not exist, therefore one will be created.");
             }
             var byNumber = prs.ToDictionary(pr => pr.Number);
             timer.Stop();
-            logger.Information($"Initialized the cache with {byNumber.Count:N0} pull requests in {timer.ElapsedMilliseconds:N0}ms");
+            logger.Information($"{fullName} initialized the cache with {byNumber.Count:N0} pull requests in {timer.ElapsedMilliseconds:N0}ms");
             
-            var repoHistoryMgr = new RepositoryManager(repoOwner, repoName, prReader, cacheManager, prApiDosBuffer, byNumber, logger);
+            var repoHistoryMgr = new RepositoryManager(repoOwner, repoName, fullName, prReader, cacheManager, prApiDosBuffer, byNumber, logger);
 
             if (!refreshFromUpstream)
             {
@@ -122,7 +125,7 @@ namespace RepoMan.Repository
         public async Task RefreshFromUpstreamAsync(ItemStateFilter stateFilter)
         {
             var prs = await _prReader.GetPullRequestsRootAsync(stateFilter);
-            var unknownPrs = new List<PullRequestDetails>(prs.Count);            
+            var unknownPrs = new List<PullRequestDetails>();            
             
             try
             {
@@ -196,22 +199,23 @@ namespace RepoMan.Repository
         /// <returns>The collection of fully-updated pull requests</returns>
         private async ValueTask<List<PullRequestDetails>> PopulateCommentsAndApprovalsAsync(List<PullRequestDetails> unfinishedPrs)
         {
-            _logger.Information($"{_repoTag} has {unfinishedPrs.Count:N0} pull requests with incomplete data to be populated");
+            _logger.Information($"{_fullName} has {unfinishedPrs.Count:N0} pull requests with incomplete data to be populated");
             var successfullyUpdatePrs = new List<PullRequestDetails>(unfinishedPrs.Count);
             
+            // This is intentionally done serially with a delay instead of going as fast as possible
             foreach (var pr in unfinishedPrs)
             {
-                _logger.Information($"Updating {_repoTag} pull request #{pr.Number}");
+                _logger.Information($"Updating {_fullName} pull request #{pr.Number}");
                 var loopTimer = Stopwatch.StartNew();
                 var succeeded = await _prReader.TryFillCommentGraphAsync(pr);
                 loopTimer.Stop();
                 
                 if (!succeeded)
                 {
-                    _logger.Information($"{_repoTag} pull request #{pr.Number} update failed in {loopTimer.ElapsedMilliseconds:N0} ms");
+                    _logger.Information($"{_fullName} pull request #{pr.Number} update failed in {loopTimer.ElapsedMilliseconds:N0} ms");
                     break;
                 }
-                _logger.Information($"{_repoTag} pull request #{pr.Number} update succeeded in {loopTimer.ElapsedMilliseconds:N0} ms");
+                _logger.Information($"{_fullName} pull request #{pr.Number} update succeeded in {loopTimer.ElapsedMilliseconds:N0} ms");
                 
                 successfullyUpdatePrs.Add(pr);
 

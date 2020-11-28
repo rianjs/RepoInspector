@@ -9,21 +9,24 @@ namespace RepoMan.Analysis.Scoring
         PullRequestScorer
     {
         public const string Label = "CommentCount";
-        public override string Attribute => "Label";
+        public override string Attribute => Label;
         public override double ScoreMultiplier => 20;
-        private readonly WordCountScorer _wordCounter;
+        private readonly IWordCounter _wc;
         private const int _wordCountFloor = 10;
 
-        public CommentCountScorer(WordCountScorer wordCounter)
+        public CommentCountScorer(IWordCounter wordCounter)
         {
-            _wordCounter = wordCounter ?? throw new ArgumentNullException(nameof(wordCounter));
+            _wc = wordCounter ?? throw new ArgumentNullException(nameof(wordCounter));
         }
 
         public override int Count(PullRequestDetails prDetails)
         {
-            return prDetails.AllComments
-                .Select(c => _wordCounter.CountWords(c.Text))
+            var bodyCount = _wc.Count(prDetails.Body);
+            var commentCount = prDetails.AllComments
+                .Select(c => _wc.Count(c.Text))
                 .Count(l => l >= _wordCountFloor);
+
+            return bodyCount + commentCount;
         }
     }
 }

@@ -8,6 +8,6 @@ namespace RepoMan.Analysis
     /// </summary>
     public interface IRepositoryAnalyzer
     {
-        RepositoryHealthSnapshot CalculateRepositoryHealthStatistics(ICollection<PullRequestCommentSnapshot> snapshots);
+        RepositoryMetrics CalculateRepositoryMetrics(ICollection<PullRequestMetrics> snapshots);
     }
 }

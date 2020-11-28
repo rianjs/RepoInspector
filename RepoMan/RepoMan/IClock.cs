@@ -4,7 +4,10 @@ namespace RepoMan
 {
     public interface IClock
     {
-        public DateTime Now();
-        public DateTime UtcNow();
+        public DateTime DateTimeNow();
+        public DateTimeOffset DateTimeOffsetNow();
+        
+        public DateTime DateTimeUtcNow();
+        public DateTimeOffset DateTimeOffsetUtcNow();
     }
 }

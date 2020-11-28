@@ -20,7 +20,10 @@ namespace RepoMan.Analysis.Scoring
                 .SelectMany(c => Extract(c.Text))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Count();
-            return issueLinkCount;
+
+            var bodyCount = Extract(prDetails.Body).Count();
+
+            return issueLinkCount + bodyCount;
         }
 
         /// <summary>

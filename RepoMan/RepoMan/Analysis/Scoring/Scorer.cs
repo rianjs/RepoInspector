@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using RepoMan.Repository;
 
@@ -17,12 +18,13 @@ namespace RepoMan.Analysis.Scoring
         public override Score GetScore(PullRequestDetails prDetails)
         {
             var count = Count(prDetails);
-            var score = count * ScoreMultiplier;
+            var rawPoints = count * ScoreMultiplier;
+            var points = Math.Round(rawPoints, 2, MidpointRounding.AwayFromZero);
             return new Score
             {
                 Attribute = Attribute,
                 Count = count,
-                Points = score,
+                Points = points,
             };
         }
     }

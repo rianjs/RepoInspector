@@ -5,8 +5,10 @@ namespace RepoMan
     public class Clock :
         IClock
     {
-        public DateTime Now() => DateTime.Now;
+        public DateTime DateTimeNow() => DateTime.Now;
+        public DateTimeOffset DateTimeOffsetNow() => DateTimeOffset.Now;
 
-        public DateTime UtcNow() => DateTime.UtcNow;
+        public DateTime DateTimeUtcNow() => DateTime.UtcNow;
+        public DateTimeOffset DateTimeOffsetUtcNow() => DateTimeOffset.UtcNow;
     }
 }

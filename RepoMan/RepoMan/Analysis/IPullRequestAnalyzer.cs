@@ -7,6 +7,6 @@ namespace RepoMan.Analysis
     /// </summary>
     public interface IPullRequestAnalyzer
     {
-        PullRequestCommentSnapshot CalculateCommentStatistics(PullRequestDetails prDetails);
+        PullRequestMetrics CalculatePullRequestMetrics(PullRequestDetails prDetails);
     }
 }

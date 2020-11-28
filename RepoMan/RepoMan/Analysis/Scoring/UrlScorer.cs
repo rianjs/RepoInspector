@@ -21,7 +21,10 @@ namespace RepoMan.Analysis.Scoring
                 .SelectMany(c => Extract(c.Text))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Count();
-            return urlCount;
+
+            var bodyCount = Extract(prDetails.Body).Count();
+            
+            return urlCount + bodyCount;
         }
 
         public override IEnumerable<string> Extract(string s)

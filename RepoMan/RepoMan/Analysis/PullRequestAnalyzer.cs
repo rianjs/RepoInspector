@@ -2,25 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
-using RepoMan.Analysis.ApprovalAnalyzers;
 using RepoMan.Analysis.Scoring;
 using RepoMan.Repository;
+using RepoMan.Serialization;
 
 namespace RepoMan.Analysis
 {
     class PullRequestAnalyzer :
         IPullRequestAnalyzer
     {
-        // TODO: Nothing in this implementation considers anything outside of pull requests, but often commits are made directly to main
-        private readonly Dictionary<string, PullRequestScorer> _scorers;
+        private readonly Dictionary<string, Scorer> _scorers;
 
-        public PullRequestAnalyzer(IApprovalAnalyzer approvalAnalyzer, IEnumerable<PullRequestScorer> scorers)
+        public PullRequestAnalyzer(IEnumerable<Scorer> scorers)
         {
             _scorers = scorers?.ToDictionary(s => s.Attribute, s => s, StringComparer.Ordinal)
                 ?? throw new ArgumentNullException(nameof(scorers));
         }
 
-        public PullRequestCommentSnapshot CalculateCommentStatistics(PullRequestDetails prDetails)
+        public PullRequestMetrics CalculatePullRequestMetrics(PullRequestDetails prDetails)
         {
             var scores = _scorers.Values
                 .Select(s => s.GetScore(prDetails))
@@ -30,9 +29,8 @@ namespace RepoMan.Analysis
             var medianCommentWordCount = wcScorer.GetWordCounts(prDetails).CalculateMedian();
             var totalScore = scores.Values.Select(s => s.Points).Sum();
             
-            var snapshot = new PullRequestCommentSnapshot
+            var snapshot = new PullRequestMetrics
             {
-                Timestamp = DateTimeOffset.UtcNow,
                 Number = prDetails.Number,
                 OpenedAt = prDetails.OpenedAt,
                 ClosedAt = prDetails.ClosedAt,
@@ -48,18 +46,17 @@ namespace RepoMan.Analysis
         }
     }
 
-    public class PullRequestCommentSnapshot
+    public class PullRequestMetrics
     {
         public int Number { get; set; }
-        public DateTimeOffset Timestamp { get; set; }
         public DateTimeOffset OpenedAt { get; set; }
         public DateTimeOffset ClosedAt { get; set; }
-        
-        [JsonIgnore]
         public TimeSpan OpenFor => ClosedAt - OpenedAt;
         public int BusinessDaysOpen { get; set; }
-
+        
+        [JsonConverter(typeof(TruncatingDoubleConverter))]
         public double TotalScore { get; set; }
+        
         public int CommentCount { get; set; }
         public int CommentWordCount { get; set; }
         public int ApprovalCount { get; set; }

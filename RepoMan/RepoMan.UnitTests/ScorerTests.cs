@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
-using NUnit.Framework.Interfaces;
 using RepoMan.Analysis.Scoring;
 using RepoMan.Repository;
 
