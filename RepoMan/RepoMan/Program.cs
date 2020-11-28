@@ -106,7 +106,11 @@ namespace RepoMan
             
             var repoWorkers = watcherInitializationTasks
                 .Select(t => t.Result)
-                // .Select(rm => new RepoWorker(rm, ))
+                .Select(repoManager => new RepoWorker(
+                    repoManager,
+                    serviceProvider.GetRequiredService<IPullRequestAnalyzer>(),
+                    serviceProvider.GetRequiredService<IRepositoryAnalyzer>(),
+                    _logger))
                 .ToList();
             
             // Create a BackgroundService with the collection of workers, and update the stats every 4 hours or so

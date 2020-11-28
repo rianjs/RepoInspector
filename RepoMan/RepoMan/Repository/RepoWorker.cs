@@ -15,19 +15,19 @@ namespace RepoMan.Repository
         IWorker
     {
         private readonly string _fullName;
-        private readonly IRepoManager _repo;
+        private readonly IRepoManager _repoManager;
         private readonly IPullRequestAnalyzer _prAnalyzer;
         private readonly IRepositoryAnalyzer _repoAnalyzer;
         private readonly ILogger _logger;
         
         public RepoWorker(
-            IRepoManager repo,
+            IRepoManager repoManager,
             IPullRequestAnalyzer prAnalyzer,
             IRepositoryAnalyzer repoAnalyzer,
             ILogger logger)
         {
-            _repo = repo ?? throw new ArgumentNullException(nameof(repo));
-            _fullName = $"{repo.RepoOwner}:{repo.RepoName}";
+            _repoManager = repoManager ?? throw new ArgumentNullException(nameof(repoManager));
+            _fullName = $"{repoManager.RepoOwner}:{repoManager.RepoName}";
             _prAnalyzer = prAnalyzer ?? throw new ArgumentNullException(nameof(prAnalyzer));
             _repoAnalyzer = repoAnalyzer ?? throw new ArgumentNullException(nameof(repoAnalyzer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -39,8 +39,8 @@ namespace RepoMan.Repository
             var timer = Stopwatch.StartNew();
             
             // TODO: Refresh from upstream first
-            await _repo.RefreshFromUpstreamAsync(ItemStateFilter.Closed);
-            var pullRequestSnapshots = await _repo.GetPullRequestsAsync();
+            await _repoManager.RefreshFromUpstreamAsync(ItemStateFilter.Closed);
+            var pullRequestSnapshots = await _repoManager.GetPullRequestsAsync();
 
             _logger.Information($"{_fullName} comment analysis starting for {pullRequestSnapshots.Count:N0} pull requests");
             var analysisTimer = Stopwatch.StartNew();

@@ -19,6 +19,7 @@ namespace RepoMan.Repository
     {
         public string RepoOwner { get; }
         public string RepoName { get; }
+        private readonly string _repoTag;
         private readonly IRepoPullRequestReader _prReader;
         private readonly ICacheManager _cacheManager;
         private readonly TimeSpan _dosBuffer;
@@ -38,6 +39,7 @@ namespace RepoMan.Repository
         {
             RepoOwner = repoOwner;
             RepoName = repoName;
+            _repoTag = $"{repoOwner}:{repoName}";
             _prReader = prReader;
             _cacheManager = cacheManager;
             _dosBuffer = prApiDosBuffer;
@@ -194,22 +196,22 @@ namespace RepoMan.Repository
         /// <returns>The collection of fully-updated pull requests</returns>
         private async ValueTask<List<PullRequestDetails>> PopulateCommentsAndApprovalsAsync(List<PullRequestDetails> unfinishedPrs)
         {
-            _logger.Information($"{unfinishedPrs.Count:N0} pull requests with incomplete data to be populated");
+            _logger.Information($"{_repoTag} has {unfinishedPrs.Count:N0} pull requests with incomplete data to be populated");
             var successfullyUpdatePrs = new List<PullRequestDetails>(unfinishedPrs.Count);
             
             foreach (var pr in unfinishedPrs)
             {
-                _logger.Information($"Updating {pr.Number}");
+                _logger.Information($"Updating {_repoTag} pull request #{pr.Number}");
                 var loopTimer = Stopwatch.StartNew();
                 var succeeded = await _prReader.TryFillCommentGraphAsync(pr);
                 loopTimer.Stop();
                 
                 if (!succeeded)
                 {
-                    _logger.Information($"Pull request {pr.Number} update failed in {loopTimer.ElapsedMilliseconds:N0}");
+                    _logger.Information($"{_repoTag} pull request #{pr.Number} update failed in {loopTimer.ElapsedMilliseconds:N0} ms");
                     break;
                 }
-                _logger.Information($"Pull request {pr.Number} update succeeded in {loopTimer.ElapsedMilliseconds:N0}");
+                _logger.Information($"{_repoTag} pull request #{pr.Number} update succeeded in {loopTimer.ElapsedMilliseconds:N0} ms");
                 
                 successfullyUpdatePrs.Add(pr);
 
