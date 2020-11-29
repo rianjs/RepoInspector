@@ -24,7 +24,7 @@ namespace RepoMan.Analysis.Scoring
             var bodyCount = _wc.Count(prDetails.Body);
             var commentCount = prDetails.AllComments
                 .Select(c => _wc.Count(c.Text))
-                .Count(l => l >= _wordCountFloor);
+                .Count();
 
             return bodyCount + commentCount;
         }
