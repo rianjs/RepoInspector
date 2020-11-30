@@ -35,6 +35,7 @@ namespace RepoMan
         private static readonly JsonSerializerSettings _jsonSerializerSettings = GetDebugJsonSerializerSettings();
         private static readonly ILogger _logger = GetLogger();
         private static readonly CancellationTokenSource _cts = new CancellationTokenSource();
+        private static ServiceProvider _sp;
 
         static async Task Main(string[] args)
         {
@@ -106,7 +107,7 @@ namespace RepoMan
                 .AddSingleton<IPullRequestAnalyzer>(sp => new PullRequestAnalyzer(sp.GetServices<Scorer>()))
                 .AddSingleton<IRepositoryAnalyzer>(sp => new RepositoryAnalyzer(sp.GetRequiredService<IClock>()));
 
-            var serviceProvider = serviceCollection.BuildServiceProvider();
+            _sp = serviceCollection.BuildServiceProvider();
             
             var watchedRepos = GetWatchedRepositories()
                 .GroupBy(r => r.ApiToken);
@@ -121,12 +122,12 @@ namespace RepoMan
                     repo.Owner,
                     repo.RepositoryName,
                     client,
-                    serviceProvider.GetRequiredService<HtmlCommentStripper>())
+                    _sp.GetRequiredService<HtmlCommentStripper>())
                 select RepositoryManager.InitializeAsync(
                     repo.Owner,
                     repo.RepositoryName,
                     prReader,
-                    serviceProvider.GetRequiredService<IPullRequestCacheManager>(),
+                    _sp.GetRequiredService<IPullRequestCacheManager>(),
                     dosBuffer,
                     refreshFromUpstream: true,
                     _logger);
@@ -137,10 +138,10 @@ namespace RepoMan
                 .Select(t => t.Result)
                 .Select(repoManager => new RepoWorker(
                     repoManager,
-                    serviceProvider.GetRequiredService<IPullRequestAnalyzer>(),
-                    serviceProvider.GetRequiredService<IRepositoryAnalyzer>(),
-                    serviceProvider.GetRequiredService<IAnalysisManager>(),
-                    serviceProvider.GetRequiredService<IClock>(),
+                    _sp.GetRequiredService<IPullRequestAnalyzer>(),
+                    _sp.GetRequiredService<IRepositoryAnalyzer>(),
+                    _sp.GetRequiredService<IAnalysisManager>(),
+                    _sp.GetRequiredService<IClock>(),
                     _logger))
                 .Select(rw => new LoopService(rw, loopDelay, _cts, _logger))
                 .Select(l => l.LoopAsync())
