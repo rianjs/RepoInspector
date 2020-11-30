@@ -15,7 +15,7 @@ namespace RepoMan.Repository
         /// </summary>
         /// <param name="stateFilter"></param>
         /// <returns></returns>
-        Task<IDictionary<int, PullRequestDetails>> RefreshFromUpstreamAsync(ItemStateFilter stateFilter);
+        Task<IList<PullRequestDetails>> RefreshFromUpstreamAsync(ItemStateFilter stateFilter);
         
         /// <summary>
         /// Returns the number of pull requests in the cache that have been fully populated
