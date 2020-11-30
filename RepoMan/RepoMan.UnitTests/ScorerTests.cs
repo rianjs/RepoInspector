@@ -48,7 +48,6 @@ namespace RepoMan.UnitTests
                 Id = 1233456789,
                 Number = 123,
                 CommitComments = new List<Comment>(),
-                IsFullyInterrogated = true,
             };
         }
     }

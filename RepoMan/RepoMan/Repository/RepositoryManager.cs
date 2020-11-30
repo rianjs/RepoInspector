@@ -118,11 +118,7 @@ namespace RepoMan.Repository
             return repoHistoryMgr;
         }
 
-        /// <summary>
-        /// </summary>
-        /// <param name="stateFilter"></param>
-        /// <returns></returns>
-        public async Task RefreshFromUpstreamAsync(ItemStateFilter stateFilter)
+        public async Task<IList<PullRequestDetails>> RefreshFromUpstreamAsync(ItemStateFilter stateFilter)
         {
             var prs = await _prReader.GetPullRequestsRootAsync(stateFilter);
             var unknownPrs = new List<PullRequestDetails>();            
@@ -130,8 +126,8 @@ namespace RepoMan.Repository
             try
             {
                 await _byNumberLock.WaitAsync();
-                var unknownPrsQuery = prs.Where(pr => !_byNumber.ContainsKey(pr.Number) || _byNumber[pr.Number].IsFullyInterrogated == false);
-                unknownPrs.AddRange(unknownPrsQuery);
+                var newOrUpdatedPullRequestsQuery = prs.Where(pr => !_byNumber.ContainsKey(pr.Number) || _byNumber[pr.Number].UpdatedAt <= pr.UpdatedAt);
+                unknownPrs.AddRange(newOrUpdatedPullRequestsQuery);
             }
             finally
             {
@@ -145,6 +141,8 @@ namespace RepoMan.Repository
                 await UpdateMemoryCacheAsync(completedPrs);
                 await PersistCacheAsync();
             }
+
+            return completedPrs;
         }
 
         /// <summary>
