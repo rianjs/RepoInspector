@@ -126,7 +126,7 @@ namespace RepoMan.Repository
             try
             {
                 await _byNumberLock.WaitAsync();
-                var newOrUpdatedPullRequestsQuery = prs.Where(pr => !_byNumber.ContainsKey(pr.Number) || _byNumber[pr.Number].UpdatedAt <= pr.UpdatedAt);
+                var newOrUpdatedPullRequestsQuery = prs.Where(pr => !_byNumber.ContainsKey(pr.Number) || _byNumber[pr.Number].UpdatedAt < pr.UpdatedAt);
                 unknownPrs.AddRange(newOrUpdatedPullRequestsQuery);
             }
             finally
