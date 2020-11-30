@@ -29,7 +29,7 @@ namespace RepoMan.Analysis
             var repoMetrics = new RepositoryMetrics
             {
                 Timestamp = _clock.DateTimeOffsetUtcNow(),
-                PullRequestCount = snapshots.Count,
+                PullRequests = new HashSet<int>(snapshots.Select(s => s.Number)),
                 MedianSecondsToPullRequestClosure = (int) medianTimeToClosure.TotalSeconds,
                 MedianBusinessDaysToPullRequestClosure = medianBusinessDaysToClose,
                 MedianCommentCountPerPullRequest = medianCommentCount,
@@ -44,7 +44,10 @@ namespace RepoMan.Analysis
     public class RepositoryMetrics
     {
         public DateTimeOffset Timestamp { get; set; }
-        public int PullRequestCount { get; set; }
+        
+        public HashSet<int> PullRequests { get; set; }
+        public int PullRequestCount => PullRequests.Count;
+        
         public int MedianCommentCountPerPullRequest { get; set; }
         public int MedianWordsPerComment { get; set; }
         
