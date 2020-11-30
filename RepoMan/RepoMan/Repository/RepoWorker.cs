@@ -58,7 +58,10 @@ namespace RepoMan.Repository
             analysisTimer.Stop();
             _logger.Information($"{Name} repository analysis completed for {newPrs.Count:N0} pull requests in {analysisTimer.Elapsed.ToMicroseconds():N0} microseconds");
 
-            await _analysisManager.SaveAsync(_repoManager.RepoOwner, _repoManager.RepoName, _clock.DateTimeUtcNow(), repoAnalysis);
+            if (repoAnalysis is object)
+            {
+                await _analysisManager.SaveAsync(_repoManager.RepoOwner, _repoManager.RepoName, _clock.DateTimeUtcNow(), repoAnalysis);
+            }
 
             timer.Stop();
             _logger.Information($"{Name} work loop completed in {timer.ElapsedMilliseconds:N0}ms");

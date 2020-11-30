@@ -18,6 +18,11 @@ namespace RepoMan.Analysis
         // TODO: Nothing in this implementation considers anything outside of pull requests, but often commits are made directly to main
         public RepositoryMetrics CalculateRepositoryMetrics(ICollection<PullRequestMetrics> snapshots)
         {
+            if (snapshots is null || snapshots.Count == 0)
+            {
+                return null;
+            }
+            
             // No, I don't care that I could just iterate this once, and aggregate the things in a single iteration and then do the math at the end
             var medianCommentCount = snapshots.Select(s => s.CommentCount).CalculateMedian();
             var medianWordsPerComment = snapshots.Select(s => s.CommentWordCount).CalculateMedian();
