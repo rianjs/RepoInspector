@@ -118,10 +118,6 @@ namespace RepoMan.Repository
             return repoHistoryMgr;
         }
 
-        /// <summary>
-        /// </summary>
-        /// <param name="stateFilter"></param>
-        /// <returns>A dictionary of pull requests that are new or that have been updated since the cache was last saved.</returns>
         public async Task<IList<PullRequestDetails>> RefreshFromUpstreamAsync(ItemStateFilter stateFilter)
         {
             var prs = await _prReader.GetPullRequestsRootAsync(stateFilter);

@@ -14,7 +14,7 @@ namespace RepoMan.Repository
         /// of the approvals, comments, and other information required to construct a complete record of the pull request's details.
         /// </summary>
         /// <param name="stateFilter"></param>
-        /// <returns></returns>
+        /// <returns>A collection of all of the new or updated pull requests that were unknown to or had to be updated in the manager</returns>
         Task<IList<PullRequestDetails>> RefreshFromUpstreamAsync(ItemStateFilter stateFilter);
         
         /// <summary>
