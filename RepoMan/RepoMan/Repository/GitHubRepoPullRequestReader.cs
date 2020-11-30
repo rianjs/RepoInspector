@@ -86,7 +86,6 @@ namespace RepoMan.Repository
             pullRequest.UpdateDiffComments(diffReviewCommentsTask.Result);
             pullRequest.UpdateDiscussionComments(generalPrCommentsTask.Result);
             pullRequest.UpdateStateTransitionComments(approvalSummariesTask.Result);
-            pullRequest.IsFullyInterrogated = true;
 
             return true;
         }

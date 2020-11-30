@@ -58,8 +58,6 @@ namespace RepoMan.Repository
         /// </summary>
         public List<Comment> CommitComments { get; set; } = new List<Comment>();
         
-        public bool IsFullyInterrogated { get; set; }
-        
         /// <summary>
         /// The comments associated with a line of code, or range of lines of code.
         /// </summary>
