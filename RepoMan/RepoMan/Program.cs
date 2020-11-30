@@ -225,6 +225,44 @@ namespace RepoMan
                 },
             };
         }
+
+        private static async Task UpgradeAsync(
+            IEnumerable<IGrouping<string, WatchedRepository>> watchedRepos,
+            IPullRequestCacheManager prCacheMgr)
+        {
+            var namedReader =
+                from kvp in watchedRepos
+                from repo in kvp
+                let client = GetClient(repo.BaseUrl, kvp.Key)
+                let prReader = new GitHubRepoPullRequestReader(
+                    repo.Owner,
+                    repo.RepositoryName,
+                    client,
+                    _sp.GetRequiredService<HtmlCommentStripper>())
+                select new
+                {
+                    repo.Owner,
+                    Name = repo.RepositoryName,
+                    Reader = prReader,
+                };
+
+            foreach (var reader in namedReader)
+            {
+                var rootTask = reader.Reader.GetPullRequestsRootAsync(ItemStateFilter.Closed);
+                var existingCache = await prCacheMgr.LoadAsync(reader.Owner, reader.Name);
+
+                var roots = await rootTask;
+                var byNumber = roots.ToDictionary(r => r.Number);
+                foreach (var cacheItem in existingCache)
+                {
+                    cacheItem.Body = byNumber[cacheItem.Number].Body;
+                }
+
+                await prCacheMgr.SaveAsync(existingCache, reader.Owner, reader.Name);
+            }
+            
+            // Recompute the baseline
+        }
         
         private static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
