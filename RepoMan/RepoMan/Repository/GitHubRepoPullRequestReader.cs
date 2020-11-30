@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Octokit;
+using RepoMan.Analysis.Normalization;
 
 namespace RepoMan.Repository
 {
@@ -15,6 +16,7 @@ namespace RepoMan.Repository
         private readonly string _repoOwner;
         private readonly string _repoName;
         private readonly GitHubClient _client;
+        private readonly INormalizer _bodyNormalizer;
 
         /// <summary>
         /// 
@@ -22,7 +24,7 @@ namespace RepoMan.Repository
         /// <param name="repoOwner"></param>
         /// <param name="repoName"></param>
         /// <param name="client">This client instance may be used across GitHubRepoPullRequestReader instances</param>
-        public GitHubRepoPullRequestReader(string repoOwner, string repoName, GitHubClient client)
+        public GitHubRepoPullRequestReader(string repoOwner, string repoName, GitHubClient client, INormalizer bodyNormalizer)
         {
             _repoOwner = string.IsNullOrWhiteSpace(repoOwner)
                 ? throw new ArgumentNullException(nameof(repoOwner))
@@ -33,13 +35,12 @@ namespace RepoMan.Repository
                 : repoName;
 
             _client = client ?? throw new ArgumentNullException(nameof(client));
+            _bodyNormalizer = bodyNormalizer ?? throw new ArgumentNullException(nameof(bodyNormalizer));
         }
 
         /// <summary>
         /// Returns all of the closed Pull Requests associated with the repository. Makes no distinction between merged and unmerged.
         /// </summary>
-        /// <param name="repoOwner"></param>
-        /// <param name="repoName"></param>
         /// <param name="stateFilter"></param>
         /// <returns></returns>
         public async Task<IList<PullRequestDetails>> GetPullRequestsRootAsync(ItemStateFilter stateFilter)
@@ -51,10 +52,9 @@ namespace RepoMan.Repository
                 SortDirection = SortDirection.Ascending,
             };
             var pullRequests = await _client.PullRequest.GetAllForRepository(_repoOwner, _repoName, prOpts);
-
+            
             var reduced = pullRequests
-                .AsParallel()
-                .Select(pr => new PullRequestDetails(pr))
+                .Select(FromPullRequest)
                 .ToList();
 
             return reduced;
@@ -90,5 +90,33 @@ namespace RepoMan.Repository
 
             return true;
         }
+
+        private PullRequestDetails FromPullRequest(PullRequest pullRequest)
+        {
+            if (pullRequest is null)
+            {
+                throw new ArgumentNullException(nameof(pullRequest));
+            }
+            
+            return new PullRequestDetails
+            {
+                Number = pullRequest.Number,
+                Id = pullRequest.Id,
+                HtmlUrl = pullRequest.HtmlUrl,
+                Submitter = new User
+                {
+                    Id = pullRequest.User.Id,
+                    Login = pullRequest.User.Login,
+                    HtmlUrl = pullRequest.User.HtmlUrl,
+                },
+                Body = _bodyNormalizer.Normalize(pullRequest.Body)?.Trim(),
+                State = pullRequest.State.ToString(),
+                OpenedAt = pullRequest.CreatedAt,
+                UpdatedAt = pullRequest.UpdatedAt,
+                ClosedAt = pullRequest.ClosedAt ?? DateTimeOffset.MaxValue,
+                MergedAt = pullRequest.MergedAt ?? DateTimeOffset.MaxValue,
+            };
+        }
+
     }
 }

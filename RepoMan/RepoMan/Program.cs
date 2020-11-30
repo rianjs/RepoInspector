@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,8 +16,11 @@ using Newtonsoft.Json.Serialization;
 using Octokit;
 using RepoMan.Analysis;
 using RepoMan.Analysis.ApprovalAnalyzers;
+using RepoMan.Analysis.Normalization;
+using RepoMan.Analysis.Scoring;
 using RepoMan.IO;
 using RepoMan.Repository;
+using RepoMan.Serialization;
 using Serilog;
 
 namespace RepoMan
@@ -28,10 +34,16 @@ namespace RepoMan
         private static readonly string _token = File.ReadAllText(_tokenPath).Trim();
         private static readonly JsonSerializerSettings _jsonSerializerSettings = GetDebugJsonSerializerSettings();
         private static readonly ILogger _logger = GetLogger();
+        private static readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         static async Task Main(string[] args)
         {
             Console.WriteLine(Environment.CurrentDirectory);
+            
+            // There's probably an idiomatic way to tuck these into the DI container as referenceable values...
+            var dosBuffer = TimeSpan.FromSeconds(0.1);
+            var loopDelay = TimeSpan.FromHours(24);
+            // Also include: cache path, scratch dir, etc. All the static readonlys above except the CTS, probably
 
             var configuration = new ConfigurationBuilder()
                 .AddEnvironmentVariables()
@@ -59,43 +71,82 @@ namespace RepoMan
                         prConstants.ExplicitApprovals,
                         prConstants.ExplicitNonApprovals,
                         prConstants.ImplicitApprovals);
-                });
+                })
+                // Reusable building blocks
+                .AddSingleton<IFilesystem>(sp => new Filesystem())
+                .AddSingleton<IClock, Clock>()
+                .AddSingleton(sp => _logger)
+                .AddSingleton(sp => new FilesystemDataProvider(sp.GetRequiredService<IFilesystem>(), _scratchDir, _jsonSerializerSettings))
+                .AddSingleton<IPullRequestCacheManager>(sp => sp.GetRequiredService<FilesystemDataProvider>())
+                .AddSingleton<IAnalysisManager>(sp => sp.GetRequiredService<FilesystemDataProvider>())
+                .AddSingleton<IWordCounter, WordCounter>()
+                .AddSingleton<HtmlCommentStripper>()
+                // CommentScorers
+                .AddSingleton<UrlScorer>()
+                .AddSingleton<CodeFenceScorer>()
+                .AddSingleton<CodeFragmentScorer>()
+                .AddSingleton<GitHubIssueLinkScorer>()
+                .AddSingleton<Scorer>(sp => sp.GetRequiredService<UrlScorer>())
+                .AddSingleton<Scorer>(sp => sp.GetRequiredService<CodeFenceScorer>())
+                .AddSingleton<Scorer>(sp => sp.GetRequiredService<CodeFragmentScorer>())
+                .AddSingleton<Scorer>(sp => sp.GetRequiredService<GitHubIssueLinkScorer>())
+                // PullRequestScorers
+                .AddSingleton<WordCountScorer>()
+                .AddSingleton<BusinessDaysScorer>()
+                .AddSingleton<UniqueCommenterScorer>()
+                .AddSingleton(sp => new CommentCountScorer(sp.GetRequiredService<IWordCounter>()))
+                .AddSingleton(sp => new ApprovalScorer(sp.GetRequiredService<GitHubApprovalAnalyzer>()))
+                .AddSingleton(sp => new CommentCountScorer(sp.GetRequiredService<IWordCounter>()))
+                .AddSingleton<Scorer>(sp => sp.GetRequiredService<ApprovalScorer>())
+                .AddSingleton<Scorer>(sp => sp.GetRequiredService<BusinessDaysScorer>())
+                .AddSingleton<Scorer>(sp => sp.GetRequiredService<CommentCountScorer>())
+                .AddSingleton<Scorer>(sp => sp.GetRequiredService<UniqueCommenterScorer>())
+                .AddSingleton<Scorer>(sp => sp.GetRequiredService<WordCountScorer>())
+                // Roll it all up into the orchestrators...
+                .AddSingleton<IPullRequestAnalyzer>(sp => new PullRequestAnalyzer(sp.GetServices<Scorer>()))
+                .AddSingleton<IRepositoryAnalyzer>(sp => new RepositoryAnalyzer(sp.GetRequiredService<IClock>()));
 
             var serviceProvider = serviceCollection.BuildServiceProvider();
-
-            var wordCounter = new WordCounter();
-            var approvalAnalyzer = serviceProvider.GetRequiredService<GitHubApprovalAnalyzer>();
-            var commentAnalyzer = new CommentAnalyzer(approvalAnalyzer, wordCounter);
-            var repoHealthAnalyzer = new RepoHealthAnalyzer();
-            var fs = new Filesystem();
-            var cacheManager = new FilesystemCacheManager(fs, _scratchDir, _jsonSerializerSettings);
-            var dosBuffer = TimeSpan.FromSeconds(0.1);
             
             var watchedRepos = GetWatchedRepositories()
                 .GroupBy(r => r.ApiToken);
+            
+            // TODO: Implement an UpgradeAsync method that can do one-time data transformations/updates on cached data
 
             var repoMgrInitializationQuery =
                 from kvp in watchedRepos
                 from repo in kvp
                 let client = GetClient(repo.BaseUrl, kvp.Key)
-                let prReader = new GitHubRepoPullRequestReader(repo.Owner, repo.RepositoryName, client)
+                let prReader = new GitHubRepoPullRequestReader(
+                    repo.Owner,
+                    repo.RepositoryName,
+                    client,
+                    serviceProvider.GetRequiredService<HtmlCommentStripper>())
                 select RepositoryManager.InitializeAsync(
                     repo.Owner,
                     repo.RepositoryName,
                     prReader,
-                    cacheManager,
+                    serviceProvider.GetRequiredService<IPullRequestCacheManager>(),
                     dosBuffer,
                     refreshFromUpstream: true,
                     _logger);
             var watcherInitializationTasks = repoMgrInitializationQuery.ToList();
             await Task.WhenAll(watcherInitializationTasks);
-
-            var repoWorkers = watcherInitializationTasks
-                .Select(t => t.Result)
-                .Select(rm => new RepoWorker(rm, approvalAnalyzer, commentAnalyzer, wordCounter, repoHealthAnalyzer, _logger))
-                .ToList();
             
-            // Create a BackgroundService with the collection of workers, and update the stats every 4 hours or so
+            var loopServices = watcherInitializationTasks
+                .Select(t => t.Result)
+                .Select(repoManager => new RepoWorker(
+                    repoManager,
+                    serviceProvider.GetRequiredService<IPullRequestAnalyzer>(),
+                    serviceProvider.GetRequiredService<IRepositoryAnalyzer>(),
+                    serviceProvider.GetRequiredService<IAnalysisManager>(),
+                    serviceProvider.GetRequiredService<IClock>(),
+                    _logger))
+                .Select(rw => new LoopService(rw, loopDelay, _cts, _logger))
+                .Select(l => l.LoopAsync())
+                .ToList();
+
+            await Task.WhenAll(loopServices);
         }
 
         /// <summary>
@@ -127,11 +178,13 @@ namespace RepoMan
             return Path.Combine(path, "scratch");
         }
         
-        private static ILogger GetLogger() =>
-            new LoggerConfiguration()
+        private static ILogger GetLogger()
+        {
+            return new LoggerConfiguration()
                 .WriteTo.Console()
                 .CreateLogger();
-        
+        }
+
         private static JsonSerializerSettings GetDebugJsonSerializerSettings()
         {
             return new JsonSerializerSettings
@@ -143,11 +196,9 @@ namespace RepoMan
                 //Otherwise:
                 // DefaultValueHandling = DefaultValueHandling.Ignore,
                 DateFormatHandling = DateFormatHandling.IsoDateFormat,
-                Converters = new List<JsonConverter> { new StringEnumConverter(), },
+                Converters = new List<JsonConverter> { new StringEnumConverter(), new TruncatingDoubleConverter(), },
             };
         }
-
-
 
         private static List<WatchedRepository> GetWatchedRepositories()
         {
@@ -172,6 +223,26 @@ namespace RepoMan
                     RepositoryKind = RepositoryKind.GitHub,
                 },
             };
+        }
+        
+        private static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
+        {
+            e.Cancel = true;
+            HandleShutdown();
+        }
+
+        private static void HandleShutdown(AssemblyLoadContext ctx)
+            => HandleShutdown();
+
+        private static void HandleShutdown()
+        {
+            _logger.Information("SIGTERM received. Shutting down");
+            
+            var stopwatch = Stopwatch.StartNew();
+            _cts.Cancel();
+            stopwatch.Stop();
+
+            _logger.Information($"Daemon stopped in {stopwatch.ElapsedMilliseconds:N0}ms");
         }
     }
 }

@@ -10,7 +10,8 @@ namespace RepoMan.Repository
         string RepoName { get; }
         
         /// <summary>
-        /// Check the upstream git repo API for any pull requests that the cache manager doesn't know about.
+        /// Check the upstream git repo API for any pull requests that the cache manager doesn't know about. For any that are found, do a deep query to get all
+        /// of the approvals, comments, and other information required to construct a complete record of the pull request's details.
         /// </summary>
         /// <param name="stateFilter"></param>
         /// <returns></returns>

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Octokit;
 using RepoMan.Analysis;
-using RepoMan.Analysis.ApprovalAnalyzers;
+using RepoMan.IO;
 using Serilog;
 
 namespace RepoMan.Repository
@@ -12,61 +12,57 @@ namespace RepoMan.Repository
     class RepoWorker :
         IWorker
     {
-        private readonly IRepoManager _repo;
-        private readonly string _fullName;
-        private readonly IApprovalAnalyzer _approvalAnalyzer;
-        private readonly ICommentAnalyzer _commentAnalyzer;
-        private readonly IWordCounter _wordCounter;
-        private readonly IRepositoryHealthAnalyzer _repoHealthAnalyzer;
+        public string Name { get; }
+        private readonly IRepoManager _repoManager;
+        private readonly IPullRequestAnalyzer _prAnalyzer;
+        private readonly IRepositoryAnalyzer _repoAnalyzer;
+        private readonly IAnalysisManager _analysisManager;
+        private readonly IClock _clock;
         private readonly ILogger _logger;
-
+        
         public RepoWorker(
-            IRepoManager repo,
-            IApprovalAnalyzer approvalAnalyzer,
-            ICommentAnalyzer commentAnalyzer,
-            IWordCounter wordCounter,
-            IRepositoryHealthAnalyzer repoHealthAnalyzer,
+            IRepoManager repoManager,
+            IPullRequestAnalyzer prAnalyzer,
+            IRepositoryAnalyzer repoAnalyzer,
+            IAnalysisManager analysisManager,
+            IClock clock,
             ILogger logger)
         {
-            _repo = repo ?? throw new ArgumentNullException(nameof(repo));
-            _fullName = $"{repo.RepoOwner}:{repo.RepoName}";
-            _approvalAnalyzer = approvalAnalyzer ?? throw new ArgumentNullException(nameof(approvalAnalyzer));
-            _commentAnalyzer = commentAnalyzer ?? throw new ArgumentNullException(nameof(commentAnalyzer));
-            _wordCounter = wordCounter ?? throw new ArgumentNullException(nameof(wordCounter));
-            _repoHealthAnalyzer = repoHealthAnalyzer ?? throw new ArgumentNullException(nameof(repoHealthAnalyzer));
+            _repoManager = repoManager ?? throw new ArgumentNullException(nameof(repoManager));
+            Name = $"{repoManager.RepoOwner}:{repoManager.RepoName}";
+            _prAnalyzer = prAnalyzer ?? throw new ArgumentNullException(nameof(prAnalyzer));
+            _repoAnalyzer = repoAnalyzer ?? throw new ArgumentNullException(nameof(repoAnalyzer));
+            _analysisManager = analysisManager ?? throw new ArgumentNullException(nameof(analysisManager));
+            _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
-
+        
         public async Task ExecuteAsync()
         {
-            _logger.Information($"{_fullName} work loop starting");
+            _logger.Information($"{Name} work loop starting");
             var timer = Stopwatch.StartNew();
             
-            // TODO: Refresh from upstream first
-            await _repo.RefreshFromUpstreamAsync(ItemStateFilter.Closed);
-            var pullRequestSnapshots = await _repo.GetPullRequestsAsync();
+            await _repoManager.RefreshFromUpstreamAsync(ItemStateFilter.Closed);
+            var pullRequestSnapshots = await _repoManager.GetPullRequestsAsync();
 
-            _logger.Information($"{_fullName} comment analysis starting for {pullRequestSnapshots.Count:N0} pull requests");
+            _logger.Information($"{Name} comment analysis starting for {pullRequestSnapshots.Count:N0} pull requests");
             var analysisTimer = Stopwatch.StartNew();
-            var singularPrSnapshots = pullRequestSnapshots
-                .Select(pr => _commentAnalyzer.CalculateCommentStatistics(pr))
+            var prAnalysis = pullRequestSnapshots
+                .Select(pr => _prAnalyzer.CalculatePullRequestMetrics(pr))
                 .ToList();
             analysisTimer.Stop();
-            _logger.Information($"{_fullName} comment analysis completed for {pullRequestSnapshots.Count:N0} pull requests in {analysisTimer.Elapsed.ToMicroseconds():N0} microseconds");
+            _logger.Information($"{Name} comment analysis completed for {pullRequestSnapshots.Count:N0} pull requests in {analysisTimer.Elapsed.ToMicroseconds():N0} microseconds");
             
-            // TODO: Do something with the comment statistics
-            
-            _logger.Information($"{_fullName} repository analysis starting for {pullRequestSnapshots.Count:N0} pull requests");
+            _logger.Information($"{Name} repository analysis starting for {pullRequestSnapshots.Count:N0} pull requests");
             analysisTimer = Stopwatch.StartNew();
-            var repoHealth = _repoHealthAnalyzer.CalculateRepositoryHealthStatistics(singularPrSnapshots);
+            var repoAnalysis = _repoAnalyzer.CalculateRepositoryMetrics(prAnalysis);
             analysisTimer.Stop();
-            _logger.Information($"{_fullName} repository analysis completed for {pullRequestSnapshots.Count:N0} pull requests in {analysisTimer.Elapsed.ToMicroseconds():N0} microseconds");
+            _logger.Information($"{Name} repository analysis completed for {pullRequestSnapshots.Count:N0} pull requests in {analysisTimer.Elapsed.ToMicroseconds():N0} microseconds");
 
-            // TODO: Do something with the repo health snapshot
-            
-            
+            await _analysisManager.SaveAsync(_repoManager.RepoOwner, _repoManager.RepoName, _clock.DateTimeUtcNow(), repoAnalysis);
+
             timer.Stop();
-            _logger.Information($"{_fullName} work loop completed in {timer.ElapsedMilliseconds:N0}ms");
+            _logger.Information($"{Name} work loop completed in {timer.ElapsedMilliseconds:N0}ms");
         }
     }
 }

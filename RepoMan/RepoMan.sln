@@ -6,6 +6,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RepoMan", "RepoMan\RepoMan.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Scratch", "Scratch\Scratch.csproj", "{7E1EBFE5-AADF-4743-B855-5DB03DE7DD72}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RepoMan.UnitTests", "RepoMan.UnitTests\RepoMan.UnitTests.csproj", "{5D5EEF3C-7DBF-4D46-BB8A-969D5C16C20C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,6 +22,10 @@ Global
 		{7E1EBFE5-AADF-4743-B855-5DB03DE7DD72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E1EBFE5-AADF-4743-B855-5DB03DE7DD72}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E1EBFE5-AADF-4743-B855-5DB03DE7DD72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D5EEF3C-7DBF-4D46-BB8A-969D5C16C20C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D5EEF3C-7DBF-4D46-BB8A-969D5C16C20C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D5EEF3C-7DBF-4D46-BB8A-969D5C16C20C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D5EEF3C-7DBF-4D46-BB8A-969D5C16C20C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

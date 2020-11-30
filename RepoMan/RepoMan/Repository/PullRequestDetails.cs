@@ -21,10 +21,13 @@ namespace RepoMan.Repository
     
     public class PullRequestDetails
     {
+        public int Number { get; set; }
         public long Id { get; set; }
         public string HtmlUrl { get; set; }
-        public int Number { get; set; }
         public User Submitter { get; set; }
+        
+        public string Body { get; set; }
+        
         /// <summary>
         /// Open, closed, merged, etc.
         /// </summary>
@@ -56,31 +59,6 @@ namespace RepoMan.Repository
         public List<Comment> CommitComments { get; set; } = new List<Comment>();
         
         public bool IsFullyInterrogated { get; set; }
-        
-        public PullRequestDetails(){}
-
-        public PullRequestDetails(Octokit.PullRequest pullRequest)
-        {
-            if (pullRequest is null)
-            {
-                throw new ArgumentNullException(nameof(pullRequest));
-            }
-            
-            Id = pullRequest.Id;
-            Number = pullRequest.Number;
-            HtmlUrl = pullRequest.HtmlUrl;
-            Submitter = new User
-            {
-                Id = pullRequest.User.Id,
-                Login = pullRequest.User.Login,
-                HtmlUrl = pullRequest.User.HtmlUrl,
-            };
-            State = pullRequest.State.ToString();
-            OpenedAt = pullRequest.CreatedAt;
-            UpdatedAt = pullRequest.UpdatedAt;
-            ClosedAt = pullRequest.ClosedAt ?? DateTimeOffset.MaxValue;
-            MergedAt = pullRequest.MergedAt ?? DateTimeOffset.MaxValue;
-        }
         
         /// <summary>
         /// The comments associated with a line of code, or range of lines of code.

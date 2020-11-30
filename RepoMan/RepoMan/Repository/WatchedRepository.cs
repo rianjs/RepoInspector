@@ -21,6 +21,11 @@ namespace RepoMan.Repository
         public string RepositoryName { get; set; }
         
         /// <summary>
+        /// The "default" branch. Usually "master", or "main", or "default"
+        /// </summary>
+        public string MainBranch { get; set; }
+        
+        /// <summary>
         /// Optional repository description
         /// </summary>
         public string Description { get; set; }
