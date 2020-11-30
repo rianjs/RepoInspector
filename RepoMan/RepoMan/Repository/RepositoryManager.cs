@@ -121,8 +121,8 @@ namespace RepoMan.Repository
         /// <summary>
         /// </summary>
         /// <param name="stateFilter"></param>
-        /// <returns></returns>
-        public async Task RefreshFromUpstreamAsync(ItemStateFilter stateFilter)
+        /// <returns>A dictionary of pull requests that are new or that have been updated since the cache was last saved.</returns>
+        public async Task<IDictionary<int, PullRequestDetails>> RefreshFromUpstreamAsync(ItemStateFilter stateFilter)
         {
             var prs = await _prReader.GetPullRequestsRootAsync(stateFilter);
             var unknownPrs = new List<PullRequestDetails>();            
@@ -145,6 +145,8 @@ namespace RepoMan.Repository
                 await UpdateMemoryCacheAsync(completedPrs);
                 await PersistCacheAsync();
             }
+
+            return completedPrs.ToDictionary(pr => pr.Number);
         }
 
         /// <summary>
