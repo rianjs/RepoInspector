@@ -75,11 +75,19 @@ namespace RepoMan.Repository
 
             // These are the comments on the PR in general, not associated with an approval, or with a commit, or with something in the diff
             var generalPrCommentsTask = _client.Issue.Comment.GetAllForIssue(_repoOwner, _repoName, pullRequest.Number);
-            
-            await Task.WhenAll(diffReviewCommentsTask, approvalSummariesTask, generalPrCommentsTask);
-            
-            if (diffReviewCommentsTask.IsFaulted || generalPrCommentsTask.IsFaulted || approvalSummariesTask.IsFaulted)
+
+            try
             {
+                await Task.WhenAll(diffReviewCommentsTask, approvalSummariesTask, generalPrCommentsTask);
+
+                if (diffReviewCommentsTask.IsFaulted || generalPrCommentsTask.IsFaulted || approvalSummariesTask.IsFaulted)
+                {
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                // Probably triggered an upstream rate limit...
                 return false;
             }
 

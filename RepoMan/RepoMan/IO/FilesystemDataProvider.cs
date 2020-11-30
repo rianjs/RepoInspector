@@ -15,6 +15,7 @@ namespace RepoMan.IO
         private readonly IFilesystem _fs;
         private readonly string _cacheParentDirectory;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
+        private const string _pullRequestDetails = "pull-requests.json";
 
         /// <summary>
         /// 
@@ -33,20 +34,22 @@ namespace RepoMan.IO
 
         public async ValueTask SaveAsync(IList<PullRequestDetails> prDetails, string repoOwner, string repoName)
         {
-            var path = GetPullRequestDetailsPath(repoOwner, repoName);
+            var parentDirectory = GetPathToRepoDataFiles(repoOwner, repoName);
+            var path = Path.Combine(parentDirectory, _pullRequestDetails);
             var json = JsonConvert.SerializeObject(prDetails, _jsonSerializerSettings);
+            _fs.DirectoryCreateDirectory(parentDirectory);
             await _fs.FileWriteAllTextAsync(path, json);
         }
 
         public async ValueTask<IList<PullRequestDetails>> LoadAsync(string repoOwner, string repoName)
         {
-            var path = GetPullRequestDetailsPath(repoOwner, repoName);
+            var path = Path.Combine(GetPathToRepoDataFiles(repoOwner, repoName), _pullRequestDetails);
             var json = await _fs.FileReadAllTextAsync(path);
             return JsonConvert.DeserializeObject<List<PullRequestDetails>>(json, _jsonSerializerSettings);
         }
 
-        private string GetPullRequestDetailsPath(string repoOwner, string repoName)
-            => Path.Combine(_cacheParentDirectory, $"{repoOwner}-{repoName}-prs.json");
+        private string GetPathToRepoDataFiles(string repoOwner, string repoName)
+            => Path.Combine(_cacheParentDirectory, repoOwner, repoName);
 
         public async ValueTask SaveAsync(string repoOwner, string repoName, DateTime utcTimestamp, RepositoryMetrics repoAnalysis)
         {
@@ -69,10 +72,14 @@ namespace RepoMan.IO
             {
                 throw new ArgumentNullException(nameof(repoAnalysis));
             }
-            
-            var path = BuildFullPathToFile(repoOwner, repoName, utcTimestamp);
+
+            var parentDirectory = GetPathToRepoDataFiles(repoOwner, repoName);
+            _fs.DirectoryCreateDirectory(parentDirectory);
+
+            var normalizedTimestamp = GetNormalizedTimestamp(utcTimestamp);
+            var fullPath = Path.Combine(parentDirectory, $"{normalizedTimestamp}-analysis.json");
             var json = JsonConvert.SerializeObject(repoAnalysis, _jsonSerializerSettings);
-            await _fs.FileWriteAllTextAsync(path, json);
+            await _fs.FileWriteAllTextAsync(fullPath, json);
         }
 
         public async ValueTask<RepositoryMetrics> LoadAsync(string repoOwner, string repoName, DateTime utcTimestamp)
@@ -91,12 +98,17 @@ namespace RepoMan.IO
             {
                 throw new ArgumentException($"UTC timestamp is not UTC, it is {utcTimestamp.Kind}");
             }
-
-            var path = BuildFullPathToFile(repoOwner, repoName, utcTimestamp);
-            var json = await _fs.FileReadAllTextAsync(path);
+            
+            var parentDirectory = GetPathToRepoDataFiles(repoOwner, repoName);
+            var normalizedTimestamp = GetNormalizedTimestamp(utcTimestamp);
+            var fullPath = Path.Combine(parentDirectory, $"{normalizedTimestamp}-analysis.json");
+            var json = await _fs.FileReadAllTextAsync(fullPath);
             var snapshot = JsonConvert.DeserializeObject<RepositoryMetrics>(json, _jsonSerializerSettings);
             return snapshot;
         }
+
+        private string GetNormalizedTimestamp(DateTimeOffset timestamp)
+            => $"{timestamp:u}".Replace(" ", "T").Replace(":", "-");
 
         public ValueTask<List<RepositoryMetrics>> LoadHistoryAsync(string repoOwner, string repoName)
         {
@@ -111,14 +123,6 @@ namespace RepoMan.IO
             {
                 throw new ArgumentNullException(nameof(repoName));
             }
-        }
-
-        private string BuildFullPathToFile(string repoOwner, string repoName, DateTime utcTimestamp)
-        {
-            var normalizedTimestamp = $"{utcTimestamp:u}"
-                .Replace(" ", "T")
-                .Replace(":", "-");
-            return Path.Combine(_cacheParentDirectory, $"{repoOwner}-{repoName}-{normalizedTimestamp}-analysis.json");
         }
     }
 }
