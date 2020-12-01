@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Octokit;
 using RepoMan.Analysis;
 using RepoMan.IO;
+using RepoMan.Records;
 using Serilog;
 
 namespace RepoMan.Repository

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using RepoMan.Analysis.Scoring;
-using RepoMan.Repository;
+using RepoMan.Records;
 
 namespace RepoMan.UnitTests
 {
@@ -23,7 +23,7 @@ namespace RepoMan.UnitTests
                 Text = CodeBlockTests.FiveMatchesFromGitHub,
             };
             
-            var prDetail = new PullRequestDetails
+            var prDetail = new PullRequest
             {
                 CommitComments = new List<Comment>{bigComment},
             };
@@ -39,9 +39,9 @@ namespace RepoMan.UnitTests
             Assert.IsTrue(Math.Abs(shouldBeZero) < double.Epsilon);
         }
 
-        private static PullRequestDetails GetPullRequestDetails()
+        private static PullRequest GetPullRequestDetails()
         {
-            return new PullRequestDetails
+            return new PullRequest
             {
                 OpenedAt = _now,
                 ClosedAt = _now + TimeSpan.FromHours(1),

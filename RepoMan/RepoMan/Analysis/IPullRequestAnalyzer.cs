@@ -1,4 +1,4 @@
-using RepoMan.Repository;
+using RepoMan.Records;
 
 namespace RepoMan.Analysis
 {
@@ -7,6 +7,6 @@ namespace RepoMan.Analysis
     /// </summary>
     public interface IPullRequestAnalyzer
     {
-        PullRequestMetrics CalculatePullRequestMetrics(PullRequestDetails prDetails);
+        PullRequestMetrics CalculatePullRequestMetrics(PullRequest prDetails);
     }
 }

@@ -1,5 +1,5 @@
 using System.Linq;
-using RepoMan.Repository;
+using RepoMan.Records;
 
 namespace RepoMan.Analysis.Scoring
 {
@@ -13,7 +13,7 @@ namespace RepoMan.Analysis.Scoring
         public override string Attribute => Label;
         public override double ScoreMultiplier => 15;
         
-        public override int Count(PullRequestDetails prDetails)
+        public override int Count(PullRequest prDetails)
         {
             return prDetails.AllComments
                 .Select(c => c.User.Id)

@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using RepoMan.Analysis;
-using RepoMan.Repository;
+using RepoMan.Records;
 
 namespace RepoMan.IO
 {
@@ -32,7 +32,7 @@ namespace RepoMan.IO
             _jsonSerializerSettings = jsonSerializerSettings ?? throw new ArgumentNullException(nameof(jsonSerializerSettings));
         }
 
-        public async ValueTask SaveAsync(IList<PullRequestDetails> prDetails, string repoOwner, string repoName)
+        public async ValueTask SaveAsync(IList<PullRequest> prDetails, string repoOwner, string repoName)
         {
             var parentDirectory = GetPathToRepoDataFiles(repoOwner, repoName);
             var path = Path.Combine(parentDirectory, _pullRequestDetails);
@@ -41,11 +41,11 @@ namespace RepoMan.IO
             await _fs.FileWriteAllTextAsync(path, json);
         }
 
-        public async ValueTask<IList<PullRequestDetails>> LoadAsync(string repoOwner, string repoName)
+        public async ValueTask<IList<PullRequest>> LoadAsync(string repoOwner, string repoName)
         {
             var path = Path.Combine(GetPathToRepoDataFiles(repoOwner, repoName), _pullRequestDetails);
             var json = await _fs.FileReadAllTextAsync(path);
-            return JsonConvert.DeserializeObject<List<PullRequestDetails>>(json, _jsonSerializerSettings);
+            return JsonConvert.DeserializeObject<List<PullRequest>>(json, _jsonSerializerSettings);
         }
 
         private string GetPathToRepoDataFiles(string repoOwner, string repoName)

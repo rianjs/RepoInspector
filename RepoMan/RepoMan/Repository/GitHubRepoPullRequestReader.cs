@@ -4,6 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Octokit;
 using RepoMan.Analysis.Normalization;
+using PullRequest = RepoMan.Records.PullRequest;
+using OctokitPullRequest = Octokit.PullRequest;
+using User = RepoMan.Records.User; 
 
 namespace RepoMan.Repository
 {
@@ -43,7 +46,7 @@ namespace RepoMan.Repository
         /// </summary>
         /// <param name="stateFilter"></param>
         /// <returns></returns>
-        public async Task<IList<PullRequestDetails>> GetPullRequestsRootAsync(ItemStateFilter stateFilter)
+        public async Task<IList<PullRequest>> GetPullRequestsRootAsync(ItemStateFilter stateFilter)
         {
             var prOpts = new PullRequestRequest
             {
@@ -65,7 +68,7 @@ namespace RepoMan.Repository
         /// </summary>
         /// <param name="pullRequest"></param>
         /// <returns></returns>
-        public async Task<bool> TryFillCommentGraphAsync(PullRequestDetails pullRequest)
+        public async Task<bool> TryFillCommentGraphAsync(PullRequest pullRequest)
         {
             // Comments on specific lines and ranges of lines in the changed code
             var diffReviewCommentsTask = _client.PullRequest.ReviewComment.GetAll(_repoOwner, _repoName, pullRequest.Number);
@@ -98,14 +101,14 @@ namespace RepoMan.Repository
             return true;
         }
 
-        private PullRequestDetails FromPullRequest(PullRequest pullRequest)
+        private PullRequest FromPullRequest(OctokitPullRequest pullRequest)
         {
             if (pullRequest is null)
             {
                 throw new ArgumentNullException(nameof(pullRequest));
             }
             
-            return new PullRequestDetails
+            return new PullRequest
             {
                 Number = pullRequest.Number,
                 Id = pullRequest.Id,
@@ -124,6 +127,5 @@ namespace RepoMan.Repository
                 MergedAt = pullRequest.MergedAt ?? DateTimeOffset.MaxValue,
             };
         }
-
     }
 }

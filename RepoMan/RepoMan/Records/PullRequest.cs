@@ -3,24 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Octokit;
+using OctokitPrComment = Octokit.PullRequestReviewComment;
+using OctokitPrReview = Octokit.PullRequestReview;
+using OctokitPrReviewState = Octokit.PullRequestReviewState;
 
-namespace RepoMan.Repository
+
+namespace RepoMan.Records
 {
-    public class TargetRepository
-    {
-        public long Id { get; set; }
-        public string HtmlUrl { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public DateTimeOffset CreatedAt { get; set; }
-        public DateTimeOffset UpdatedAt { get; set; }
-        public DateTimeOffset PushedAt { get; set; }
-        public long Size { get; set; }
-        public bool IsArchived { get; set; }
-    }
-    
-    public class PullRequestDetails :
-        IEquatable<PullRequestDetails>
+    public class PullRequest :
+        IEquatable<PullRequest>
     {
         public int Number { get; set; }
         public long Id { get; set; }
@@ -65,12 +56,12 @@ namespace RepoMan.Repository
         /// <param name="prDetails"></param>
         /// <param name="prReviewComments"></param>
         /// <returns></returns>
-        public void UpdateDiffComments(IEnumerable<PullRequestReviewComment> prReviewComments)
+        public void UpdateDiffComments(IEnumerable<OctokitPrComment> prReviewComments)
         {
             DiffComments.AddRange(prReviewComments.Select(GetComment));
         }
         
-        private static Comment GetComment(PullRequestReviewComment prComment)
+        private static Comment GetComment(OctokitPrComment prComment)
         {
             return new Comment
             {
@@ -91,12 +82,12 @@ namespace RepoMan.Repository
         /// The comments associated with when someone clicks the Approve or Changes Requested button in the approval workflow 
         /// </summary>
         /// <returns></returns>
-        public void UpdateStateTransitionComments(IEnumerable<PullRequestReview> commentsForStateTransition)
+        public void UpdateStateTransitionComments(IEnumerable<OctokitPrReview> commentsForStateTransition)
         {
             ReviewComments.AddRange(commentsForStateTransition.Select(GetComment));
         }
         
-        private static Comment GetComment(PullRequestReview prReview)
+        private static Comment GetComment(OctokitPrReview prReview)
         {
             return new Comment
             {
@@ -114,8 +105,8 @@ namespace RepoMan.Repository
             };
         }
         
-        private static string GetReviewState(StringEnum<PullRequestReviewState> state)
-            => state == PullRequestReviewState.Commented
+        private static string GetReviewState(StringEnum<OctokitPrReviewState> state)
+            => state == OctokitPrReviewState.Commented
                 ? null
                 : state.StringValue;
 
@@ -151,7 +142,7 @@ namespace RepoMan.Repository
         public IEnumerable<Comment> AllComments
             => ReviewComments.Concat(DiffComments).Concat(CommitComments);
 
-        public bool Equals(PullRequestDetails other)
+        public bool Equals(PullRequest other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
@@ -163,87 +154,16 @@ namespace RepoMan.Repository
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((PullRequestDetails) obj);
+            return obj.GetType() == GetType() && Equals((PullRequest) obj);
         }
 
         public override int GetHashCode()
             => HashCode.Combine(Number, UpdatedAt);
 
-        public static bool operator ==(PullRequestDetails left, PullRequestDetails right)
+        public static bool operator ==(PullRequest left, PullRequest right)
             => Equals(left, right);
 
-        public static bool operator !=(PullRequestDetails left, PullRequestDetails right)
-            => !Equals(left, right);
-    }
-
-    public class Comment :
-        IEquatable<Comment>
-    {
-        public long Id { get; set; }
-        public User User { get; set; }
-        public string HtmlUrl { get; set; }
-        public DateTimeOffset CreatedAt { get; set; }
-        public DateTimeOffset UpdatedAt { get; set; }
-        
-        /// <summary>
-        /// Null, unless the comment is associated with a review comment where someone has approved it, or requested changes or whatever
-        /// </summary>
-        public string ReviewState { get; set; }
-        public string Text { get; set; }
-
-        public bool Equals(Comment other)
-        {
-            if (ReferenceEquals(null, other)) return false;
-            if (ReferenceEquals(this, other)) return true;
-            return Id == other.Id
-                && UpdatedAt.Equals(other.UpdatedAt);
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((Comment) obj);
-        }
-
-        public override int GetHashCode()
-            => HashCode.Combine(Id, UpdatedAt);
-
-        public static bool operator ==(Comment left, Comment right)
-            => Equals(left, right);
-
-        public static bool operator !=(Comment left, Comment right)
-            => !Equals(left, right);
-    }
-
-    public class User :
-        IEquatable<User>
-    {
-        public long Id { get; set; }
-        public string Login { get; set; }
-        public string HtmlUrl { get; set; }
-
-        public bool Equals(User other)
-        {
-            if (ReferenceEquals(null, other)) return false;
-            if (ReferenceEquals(this, other)) return true;
-            return Id == other.Id;
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((User) obj);
-        }
-
-        public override int GetHashCode()
-            => Id.GetHashCode();
-
-        public static bool operator ==(User left, User right)
-            => Equals(left, right);
-
-        public static bool operator !=(User left, User right)
+        public static bool operator !=(PullRequest left, PullRequest right)
             => !Equals(left, right);
     }
 }

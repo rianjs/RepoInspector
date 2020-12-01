@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Octokit;
+using PullRequest = RepoMan.Records.PullRequest;
 
 namespace RepoMan.Repository
 {
@@ -11,13 +12,13 @@ namespace RepoMan.Repository
         /// </summary>
         /// <param name="stateFilter"></param>
         /// <returns></returns>
-        Task<IList<PullRequestDetails>> GetPullRequestsRootAsync(ItemStateFilter stateFilter);
+        Task<IList<PullRequest>> GetPullRequestsRootAsync(ItemStateFilter stateFilter);
 
         /// <summary>
         /// Fills out the comments on the pull request by doing concurrent calls to the various GitHub comment APIs, and aggregating the results
         /// </summary>
         /// <param name="pullRequest"></param>
         /// <returns></returns>
-        Task<bool> TryFillCommentGraphAsync(PullRequestDetails pullRequest);
+        Task<bool> TryFillCommentGraphAsync(PullRequest pullRequest);
     }
 }

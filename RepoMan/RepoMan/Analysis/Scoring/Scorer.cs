@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using RepoMan.Repository;
+using RepoMan.Records;
 
 namespace RepoMan.Analysis.Scoring
 {
@@ -8,14 +8,14 @@ namespace RepoMan.Analysis.Scoring
     {
         public abstract string Attribute { get; }
         public abstract double ScoreMultiplier { get; }
-        public abstract Score GetScore(PullRequestDetails prDetails);
+        public abstract Score GetScore(PullRequest prDetails);
     }
     
     abstract class PullRequestScorer : Scorer
     {
-        public abstract int Count(PullRequestDetails prDetails);
+        public abstract int Count(PullRequest prDetails);
 
-        public override Score GetScore(PullRequestDetails prDetails)
+        public override Score GetScore(PullRequest prDetails)
         {
             var count = Count(prDetails);
             var rawPoints = count * ScoreMultiplier;

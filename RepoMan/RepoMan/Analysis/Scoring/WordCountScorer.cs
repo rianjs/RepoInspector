@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using RepoMan.Repository;
+using RepoMan.Records;
 
 namespace RepoMan.Analysis.Scoring
 {
@@ -19,10 +19,10 @@ namespace RepoMan.Analysis.Scoring
             _wc = wordCounter ?? throw new ArgumentNullException(nameof(wordCounter));
         }
 
-        public override int Count(PullRequestDetails prDetails)
+        public override int Count(PullRequest prDetails)
             => GetWordCounts(prDetails).Sum();
 
-        public IEnumerable<int> GetWordCounts(PullRequestDetails prDetails)
+        public IEnumerable<int> GetWordCounts(PullRequest prDetails)
         {
             return prDetails.AllComments
                 .Select(c => _wc.Count(c.Text))

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
 using RepoMan.Analysis.Scoring;
-using RepoMan.Repository;
+using RepoMan.Records;
 
 namespace RepoMan.UnitTests
 {
@@ -13,7 +13,7 @@ namespace RepoMan.UnitTests
         [Test, TestCaseSource(nameof(IssueCounterTestCases))]
         public int GitHubIssueLinkTests(string s)
         {
-            var prDetails = new PullRequestDetails
+            var prDetails = new PullRequest
             {
                 CommitComments = new List<Comment>
                 {
