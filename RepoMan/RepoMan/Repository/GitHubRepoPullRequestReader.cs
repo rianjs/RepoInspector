@@ -4,6 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Octokit;
 using RepoMan.Analysis.Normalization;
+using RepoMan.Records;
+using PullRequest = RepoMan.Records.PullRequest;
+using User = RepoMan.Records.User;
+using OctokitPullRequest = Octokit.PullRequest;
 
 namespace RepoMan.Repository
 {
@@ -43,11 +47,11 @@ namespace RepoMan.Repository
         /// </summary>
         /// <param name="stateFilter"></param>
         /// <returns></returns>
-        public async Task<IList<PullRequestDetails>> GetPullRequestsRootAsync(ItemStateFilter stateFilter)
+        public async Task<IList<PullRequest>> GetPullRequestsRootAsync(ItemState stateFilter)
         {
             var prOpts = new PullRequestRequest
             {
-                State = stateFilter,
+                State = stateFilter.ToItemStateFilter(),
                 SortProperty = PullRequestSort.Created,
                 SortDirection = SortDirection.Ascending,
             };
@@ -65,7 +69,7 @@ namespace RepoMan.Repository
         /// </summary>
         /// <param name="pullRequest"></param>
         /// <returns></returns>
-        public async Task<bool> TryFillCommentGraphAsync(PullRequestDetails pullRequest)
+        public async Task<bool> TryFillCommentGraphAsync(PullRequest pullRequest)
         {
             // Comments on specific lines and ranges of lines in the changed code
             var diffReviewCommentsTask = _client.PullRequest.ReviewComment.GetAll(_repoOwner, _repoName, pullRequest.Number);
@@ -83,37 +87,42 @@ namespace RepoMan.Repository
                 return false;
             }
 
-            pullRequest.UpdateDiffComments(diffReviewCommentsTask.Result);
-            pullRequest.UpdateDiscussionComments(generalPrCommentsTask.Result);
-            pullRequest.UpdateStateTransitionComments(approvalSummariesTask.Result);
+            var diffReviewComments = diffReviewCommentsTask.Result.Select(c => c.FromPullRequestReviewComment());
+            pullRequest.UpdateDiffComments(diffReviewComments);
+
+            var generalPrComments = generalPrCommentsTask.Result.Select(c => c.FromIssueComment());
+            pullRequest.UpdateDiscussionComments(generalPrComments);
+            
+            var stateTransitionComments = approvalSummariesTask.Result.Select(c => c.FromPullRequestReviewSummary());
+            pullRequest.UpdateStateTransitionComments(stateTransitionComments);
 
             return true;
         }
 
-        private PullRequestDetails FromPullRequest(PullRequest pullRequest)
+        private PullRequest FromPullRequest(OctokitPullRequest octokitPr)
         {
-            if (pullRequest is null)
+            if (octokitPr is null)
             {
-                throw new ArgumentNullException(nameof(pullRequest));
+                throw new ArgumentNullException(nameof(octokitPr));
             }
             
-            return new PullRequestDetails
+            return new PullRequest
             {
-                Number = pullRequest.Number,
-                Id = pullRequest.Id,
-                HtmlUrl = pullRequest.HtmlUrl,
+                Number = octokitPr.Number,
+                Id = octokitPr.Id,
+                HtmlUrl = octokitPr.HtmlUrl,
                 Submitter = new User
                 {
-                    Id = pullRequest.User.Id,
-                    Login = pullRequest.User.Login,
-                    HtmlUrl = pullRequest.User.HtmlUrl,
+                    Id = octokitPr.User.Id,
+                    Login = octokitPr.User.Login,
+                    HtmlUrl = octokitPr.User.HtmlUrl,
                 },
-                Body = _bodyNormalizer.Normalize(pullRequest.Body)?.Trim(),
-                State = pullRequest.State.ToString(),
-                OpenedAt = pullRequest.CreatedAt,
-                UpdatedAt = pullRequest.UpdatedAt,
-                ClosedAt = pullRequest.ClosedAt ?? DateTimeOffset.MaxValue,
-                MergedAt = pullRequest.MergedAt ?? DateTimeOffset.MaxValue,
+                Body = _bodyNormalizer.Normalize(octokitPr.Body)?.Trim(),
+                State = octokitPr.State.ToString(),
+                OpenedAt = octokitPr.CreatedAt,
+                UpdatedAt = octokitPr.UpdatedAt,
+                ClosedAt = octokitPr.ClosedAt ?? DateTimeOffset.MaxValue,
+                MergedAt = octokitPr.MergedAt ?? DateTimeOffset.MaxValue,
             };
         }
 

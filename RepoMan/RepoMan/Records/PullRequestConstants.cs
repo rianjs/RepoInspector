@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace RepoMan.Repository
+namespace RepoMan.Records
 {
     class PullRequestConstants
     {

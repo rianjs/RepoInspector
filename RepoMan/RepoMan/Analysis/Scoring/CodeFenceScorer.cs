@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using RepoMan.Repository;
+using RepoMan.Records;
 
 namespace RepoMan.Analysis.Scoring
 {
@@ -19,7 +19,7 @@ namespace RepoMan.Analysis.Scoring
         // You can see a lot of my testing here: https://github.com/rianjs/RepoMan/issues/12
         private static readonly Regex _codeFence = new Regex(@"^```[ ]*[\w]*[ ]*\n[\s\S]*?\n```", RegexOptions.Compiled | RegexOptions.Multiline);
 
-        public override int Count(PullRequestDetails prDetails)
+        public override int Count(PullRequest prDetails)
         {
             var codeFenceCount = prDetails.AllComments
                 .SelectMany(c => Extract(c.Text))

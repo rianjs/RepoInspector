@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using RepoMan.Analysis.Scoring;
-using RepoMan.Repository;
+using RepoMan.Records;
 
 namespace RepoMan.UnitTests
 {
@@ -23,15 +23,13 @@ namespace RepoMan.UnitTests
                 Text = CodeBlockTests.FiveMatchesFromGitHub,
             };
             
-            var prDetail = new PullRequestDetails
+            var prDetail = new PullRequest
             {
                 CommitComments = new List<Comment>{bigComment},
             };
             
             // Crazy github string has 5 code fences, and 2 code fragments = score of 54
-            // var codeFragments = _fragmentScorer.Count(prDetail);
             var fragmentScore = _fragmentScorer.GetScore(prDetail);
-            // var codeFences = _fenceScorer.Count(CodeBlockTests.FiveMatchesFromGitHub);
             var fenceScore = new CodeFenceScorer().GetScore(prDetail);
             
             var codeScore = fragmentScore.Points + fenceScore.Points;
@@ -39,9 +37,9 @@ namespace RepoMan.UnitTests
             Assert.IsTrue(Math.Abs(shouldBeZero) < double.Epsilon);
         }
 
-        private static PullRequestDetails GetPullRequestDetails()
+        private static PullRequest GetPullRequestDetails()
         {
-            return new PullRequestDetails
+            return new PullRequest
             {
                 OpenedAt = _now,
                 ClosedAt = _now + TimeSpan.FromHours(1),

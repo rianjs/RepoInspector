@@ -19,8 +19,8 @@ using RepoMan.Analysis.ApprovalAnalyzers;
 using RepoMan.Analysis.Normalization;
 using RepoMan.Analysis.Scoring;
 using RepoMan.IO;
+using RepoMan.Records;
 using RepoMan.Repository;
-using RepoMan.Serialization;
 using Serilog;
 
 namespace RepoMan

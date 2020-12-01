@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using RepoMan.Repository;
+using RepoMan.Records;
 
 namespace RepoMan.Analysis.Scoring
 {
@@ -19,7 +19,7 @@ namespace RepoMan.Analysis.Scoring
             _wc = wordCounter ?? throw new ArgumentNullException(nameof(wordCounter));
         }
 
-        public override int Count(PullRequestDetails prDetails)
+        public override int Count(PullRequest prDetails)
         {
             var bodyCount = _wc.Count(prDetails.Body);
             var commentCount = prDetails.AllComments

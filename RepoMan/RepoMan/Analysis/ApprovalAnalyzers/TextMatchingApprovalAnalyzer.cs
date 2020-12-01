@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using RepoMan.Repository;
+using RepoMan.Records;
 
 namespace RepoMan.Analysis.ApprovalAnalyzers
 {
@@ -35,12 +35,14 @@ namespace RepoMan.Analysis.ApprovalAnalyzers
         /// <returns></returns>
         public bool IsApproved(Comment comment)
         {
-            if (_approvalStates.Contains(comment.ReviewState))
+            // TODO: This is so ugly...
+            var asString = comment.ReviewState.ToOctokitString();
+            if (_approvalStates.Contains(asString))
             {
                 return true;
             }
 
-            if (_nonApprovalStates.Contains(comment.ReviewState))
+            if (_nonApprovalStates.Contains(asString))
             {
                 return false;
             }

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using RepoMan.Repository;
+using RepoMan.Records;
 
 namespace RepoMan.Analysis.Scoring
 {
@@ -14,7 +14,7 @@ namespace RepoMan.Analysis.Scoring
         public override double ScoreMultiplier => 5;
         private static readonly Regex _issue = new Regex(@"#([\d]+)", RegexOptions.Compiled | RegexOptions.Multiline);
         
-        public override int Count(PullRequestDetails prDetails)
+        public override int Count(PullRequest prDetails)
         {
             var issueLinkCount = prDetails.AllComments
                 .SelectMany(c => Extract(c.Text))

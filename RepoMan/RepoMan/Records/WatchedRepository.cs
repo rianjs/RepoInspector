@@ -1,7 +1,8 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using RepoMan.Repository;
 
-namespace RepoMan.Repository
+namespace RepoMan.Records
 {
     public class WatchedRepository
     {
