@@ -24,19 +24,52 @@ namespace RepoMan.Repository
         
         public RepoWorker(
             IRepoManager repoManager,
+            string workerName,
             IPullRequestAnalyzer prAnalyzer,
             IRepositoryAnalyzer repoAnalyzer,
             IAnalysisManager analysisManager,
             IClock clock,
             ILogger logger)
         {
-            _repoManager = repoManager ?? throw new ArgumentNullException(nameof(repoManager));
-            Name = $"{repoManager.RepoOwner}:{repoManager.RepoName}";
-            _prAnalyzer = prAnalyzer ?? throw new ArgumentNullException(nameof(prAnalyzer));
-            _repoAnalyzer = repoAnalyzer ?? throw new ArgumentNullException(nameof(repoAnalyzer));
-            _analysisManager = analysisManager ?? throw new ArgumentNullException(nameof(analysisManager));
-            _clock = clock ?? throw new ArgumentNullException(nameof(clock));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _repoManager = repoManager;
+            Name = workerName;
+            _prAnalyzer = prAnalyzer;
+            _repoAnalyzer = repoAnalyzer;
+            _analysisManager = analysisManager;
+            _clock = clock;
+            _logger = logger;
+        }
+
+        public async Task InitializeAsync(IRepoManager repoManager,
+            IPullRequestAnalyzer prAnalyzer,
+            IRepositoryAnalyzer repoAnalyzer,
+            IAnalysisManager analysisManager,
+            IClock clock,
+            ILogger logger)
+        {
+            if (repoManager is null) throw new ArgumentNullException(nameof(repoManager));
+            if (prAnalyzer is null) throw new ArgumentNullException(nameof(prAnalyzer));
+            if (repoAnalyzer is null) throw new ArgumentNullException(nameof(repoAnalyzer));
+            if (analysisManager is null) throw new ArgumentNullException(nameof(analysisManager));
+            if (clock is null) throw new ArgumentNullException(nameof(clock));
+            if (logger is null) throw new ArgumentNullException(nameof(logger));
+            
+            var name = $"{repoManager.RepoOwner}:{repoManager.RepoName}";
+            
+            // See what PRs have been analyzed by loading the existing analysis files, and seeing if the set of analyzers has changed.
+            // If so, recompute the world, but save the data back into the original locations
+            var existingMetrics = new HashSet<RepositoryMetrics>(await analysisManager.LoadHistoryAsync(repoManager.RepoOwner, repoManager.RepoName));
+
+            var knownPrs = await _repoManager.GetCachedPullRequestsAsync();
+            var recomputedPrMetrics = knownPrs
+                .Select(prAnalyzer.CalculatePullRequestMetrics)
+                .ToHashSet();
+            
+            // var newMetrics = existingMetrics
+            //     .Select()
+            
+            // Recompute everything...
+
         }
         
         public async Task ExecuteAsync()
@@ -45,12 +78,11 @@ namespace RepoMan.Repository
             var timer = Stopwatch.StartNew();
             
             var newPrs = await _repoManager.RefreshFromUpstreamAsync(ItemStateFilter.Closed);
-            // Read the analysis files -- if the PR isn't in the collective set, it hasn't been analyzed
 
             _logger.Information($"{Name} comment analysis starting for {newPrs.Count:N0} pull requests");
             var analysisTimer = Stopwatch.StartNew();
             var prAnalysis = newPrs
-                .Select(pr => _prAnalyzer.CalculatePullRequestMetrics(pr))
+                .Select(_prAnalyzer.CalculatePullRequestMetrics)
                 .ToList();
             analysisTimer.Stop();
             _logger.Information($"{Name} comment analysis completed for {newPrs.Count:N0} pull requests in {analysisTimer.Elapsed.ToMicroseconds():N0} microseconds");

@@ -16,6 +16,7 @@ namespace RepoMan.IO
         private readonly string _cacheParentDirectory;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
         private const string _pullRequestDetails = "pull-requests.json";
+        private const string _analysisSuffix = "-analysis.json";
 
         /// <summary>
         /// 
@@ -77,7 +78,7 @@ namespace RepoMan.IO
             _fs.DirectoryCreateDirectory(parentDirectory);
 
             var normalizedTimestamp = GetNormalizedTimestamp(utcTimestamp);
-            var fullPath = Path.Combine(parentDirectory, $"{normalizedTimestamp}-analysis.json");
+            var fullPath = Path.Combine(parentDirectory, $"{normalizedTimestamp}{_analysisSuffix}");
             var json = JsonConvert.SerializeObject(repoAnalysis, _jsonSerializerSettings);
             await _fs.FileWriteAllTextAsync(fullPath, json);
         }
@@ -101,7 +102,7 @@ namespace RepoMan.IO
             
             var parentDirectory = GetPathToRepoDataFiles(repoOwner, repoName);
             var normalizedTimestamp = GetNormalizedTimestamp(utcTimestamp);
-            var fullPath = Path.Combine(parentDirectory, $"{normalizedTimestamp}-analysis.json");
+            var fullPath = Path.Combine(parentDirectory, $"{normalizedTimestamp}{_analysisSuffix}");
             var json = await _fs.FileReadAllTextAsync(fullPath);
             var snapshot = JsonConvert.DeserializeObject<RepositoryMetrics>(json, _jsonSerializerSettings);
             return snapshot;
@@ -110,10 +111,8 @@ namespace RepoMan.IO
         private string GetNormalizedTimestamp(DateTimeOffset timestamp)
             => $"{timestamp:u}".Replace(" ", "T").Replace(":", "-");
 
-        public ValueTask<List<RepositoryMetrics>> LoadHistoryAsync(string repoOwner, string repoName)
+        public async ValueTask<List<RepositoryMetrics>> LoadHistoryAsync(string repoOwner, string repoName)
         {
-            throw new NotImplementedException();
-
             if (string.IsNullOrWhiteSpace(repoOwner))
             {
                 throw new ArgumentNullException(nameof(repoOwner));
@@ -123,6 +122,31 @@ namespace RepoMan.IO
             {
                 throw new ArgumentNullException(nameof(repoName));
             }
+            
+            const string searchPattern = "*" + _analysisSuffix;
+            var searchPath = GetPathToRepoDataFiles(repoOwner, repoName);
+            var matches = _fs.DirectoryGetFiles(searchPath, searchPattern);
+
+            var readMatches = matches
+                .Select(async p =>
+                new {
+                    Path = p,
+                    Contents = await _fs.FileReadAllTextAsync(p),
+                })
+                .ToList();
+            await Task.WhenAll(readMatches);
+
+            var deserialized = readMatches
+                .AsParallel()
+                .Select(t => t.Result)
+                .Select(kvp => new
+                {
+                    kvp.Path,
+                    Metrics = JsonConvert.DeserializeObject<RepositoryMetrics>(kvp.Contents, _jsonSerializerSettings),
+                })
+                .ToDictionary(kvp => kvp.Path, kvp => kvp.Metrics);
+
+            return deserialized.Values.ToList();
         }
     }
 }

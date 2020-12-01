@@ -9,5 +9,6 @@ namespace RepoMan.IO
         Task FileWriteAllTextAsync(string path, string contents);
 
         DirectoryInfo DirectoryCreateDirectory(string path);
+        string[] DirectoryGetFiles(string path, string searchPattern);
     }
 }

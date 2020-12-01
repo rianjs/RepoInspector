@@ -138,6 +138,7 @@ namespace RepoMan
                 .Select(t => t.Result)
                 .Select(repoManager => new RepoWorker(
                     repoManager,
+                    null,    // TODO: Use initialize
                     serviceProvider.GetRequiredService<IPullRequestAnalyzer>(),
                     serviceProvider.GetRequiredService<IRepositoryAnalyzer>(),
                     serviceProvider.GetRequiredService<IAnalysisManager>(),

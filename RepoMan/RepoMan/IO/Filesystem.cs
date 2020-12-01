@@ -15,5 +15,8 @@ namespace RepoMan.IO
         {
             return Directory.CreateDirectory(path);
         }
+
+        public string[] DirectoryGetFiles(string path, string searchPattern)
+            => Directory.GetFiles(path, searchPattern);
     }
 }
