@@ -19,7 +19,8 @@ namespace RepoMan.Repository
         public bool IsArchived { get; set; }
     }
     
-    public class PullRequestDetails
+    public class PullRequestDetails :
+        IEquatable<PullRequestDetails>
     {
         public int Number { get; set; }
         public long Id { get; set; }
@@ -85,12 +86,10 @@ namespace RepoMan.Repository
                 },
             };
         }
-        
+
         /// <summary>
         /// The comments associated with when someone clicks the Approve or Changes Requested button in the approval workflow 
         /// </summary>
-        /// <param name="prDetails"></param>
-        /// <param name="stateTransitionComments"></param>
         /// <returns></returns>
         public void UpdateStateTransitionComments(IEnumerable<PullRequestReview> commentsForStateTransition)
         {
@@ -116,15 +115,10 @@ namespace RepoMan.Repository
         }
         
         private static string GetReviewState(StringEnum<PullRequestReviewState> state)
-        {
-            if (state == PullRequestReviewState.Commented)
-            {
-                return null;
-            }
+            => state == PullRequestReviewState.Commented
+                ? null
+                : state.StringValue;
 
-            return state.StringValue;
-        }
-        
         /// <summary>
         /// The top-level comments on a pull request that are not associated with specific commits, lines of code, etc.
         /// </summary>
@@ -156,9 +150,34 @@ namespace RepoMan.Repository
         [JsonIgnore]
         public IEnumerable<Comment> AllComments
             => ReviewComments.Concat(DiffComments).Concat(CommitComments);
+
+        public bool Equals(PullRequestDetails other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Number == other.Number
+                && UpdatedAt.Equals(other.UpdatedAt);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj.GetType() == GetType() && Equals((PullRequestDetails) obj);
+        }
+
+        public override int GetHashCode()
+            => HashCode.Combine(Number, UpdatedAt);
+
+        public static bool operator ==(PullRequestDetails left, PullRequestDetails right)
+            => Equals(left, right);
+
+        public static bool operator !=(PullRequestDetails left, PullRequestDetails right)
+            => !Equals(left, right);
     }
 
-    public class Comment
+    public class Comment :
+        IEquatable<Comment>
     {
         public long Id { get; set; }
         public User User { get; set; }
@@ -171,12 +190,60 @@ namespace RepoMan.Repository
         /// </summary>
         public string ReviewState { get; set; }
         public string Text { get; set; }
+
+        public bool Equals(Comment other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Id == other.Id
+                && UpdatedAt.Equals(other.UpdatedAt);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj.GetType() == GetType() && Equals((Comment) obj);
+        }
+
+        public override int GetHashCode()
+            => HashCode.Combine(Id, UpdatedAt);
+
+        public static bool operator ==(Comment left, Comment right)
+            => Equals(left, right);
+
+        public static bool operator !=(Comment left, Comment right)
+            => !Equals(left, right);
     }
 
-    public class User
+    public class User :
+        IEquatable<User>
     {
         public long Id { get; set; }
         public string Login { get; set; }
         public string HtmlUrl { get; set; }
+
+        public bool Equals(User other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Id == other.Id;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj.GetType() == GetType() && Equals((User) obj);
+        }
+
+        public override int GetHashCode()
+            => Id.GetHashCode();
+
+        public static bool operator ==(User left, User right)
+            => Equals(left, right);
+
+        public static bool operator !=(User left, User right)
+            => !Equals(left, right);
     }
 }

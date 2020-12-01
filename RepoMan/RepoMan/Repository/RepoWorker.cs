@@ -43,6 +43,7 @@ namespace RepoMan.Repository
             var timer = Stopwatch.StartNew();
             
             var newPrs = await _repoManager.RefreshFromUpstreamAsync(ItemStateFilter.Closed);
+            // Read the analysis files -- if the PR isn't in the collective set, it hasn't been analyzed
 
             _logger.Information($"{Name} comment analysis starting for {newPrs.Count:N0} pull requests");
             var analysisTimer = Stopwatch.StartNew();

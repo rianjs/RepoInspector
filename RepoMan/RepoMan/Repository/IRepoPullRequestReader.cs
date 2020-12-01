@@ -9,8 +9,6 @@ namespace RepoMan.Repository
         /// <summary>
         /// Returns all of the closed Pull Requests associated with the repository. Makes no distinction between merged and unmerged.
         /// </summary>
-        /// <param name="repoOwner"></param>
-        /// <param name="repoName"></param>
         /// <param name="stateFilter"></param>
         /// <returns></returns>
         Task<IList<PullRequestDetails>> GetPullRequestsRootAsync(ItemStateFilter stateFilter);
