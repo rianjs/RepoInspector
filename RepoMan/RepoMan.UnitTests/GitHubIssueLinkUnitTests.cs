@@ -14,7 +14,7 @@ namespace RepoMan.UnitTests
         [Test, TestCaseSource(nameof(IssueCounterTestCases))]
         public int GitHubIssueLinkTests(string s)
         {
-            var prDetails = new PullRequestDetails
+            var prDetails = new PullRequest
             {
                 CommitComments = new List<Comment>
                 {

@@ -16,7 +16,7 @@ namespace RepoMan.Analysis.Scoring
         public override string Attribute => Label;
         public override double ScoreMultiplier => -10;
         
-        public override int Count(PullRequestDetails prDetails)
+        public override int Count(PullRequest prDetails)
         {
             var open = prDetails.OpenedAt;
             var close = prDetails.ClosedAt;
@@ -43,7 +43,7 @@ namespace RepoMan.Analysis.Scoring
             return (int) bDays;
         }
 
-        public override Score GetScore(PullRequestDetails prDetails)
+        public override Score GetScore(PullRequest prDetails)
         {
             var businessDaysOpen = Count(prDetails);
             if (businessDaysOpen < 0)

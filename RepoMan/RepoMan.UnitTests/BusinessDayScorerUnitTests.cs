@@ -13,7 +13,7 @@ namespace RepoMan.UnitTests
         private static readonly BusinessDaysScorer _scorer = new BusinessDaysScorer();
 
         [Test, TestCaseSource(nameof(BusinessDayScorerTestCases))]
-        public void BusinessDayScorerTests(PullRequestDetails prDetails, double expected)
+        public void BusinessDayScorerTests(PullRequest prDetails, double expected)
         {
             var points = _scorer.GetScore(prDetails).Points;
             var difference = points - expected;
@@ -23,7 +23,7 @@ namespace RepoMan.UnitTests
         private static IEnumerable<ITestCaseData> BusinessDayScorerTestCases()
         {
             var open = new DateTimeOffset(2020, 11, 2, 8, 0, 0, TimeSpan.FromHours(-5));
-            var sameDay = new PullRequestDetails
+            var sameDay = new PullRequest
             {
                 OpenedAt = open,
                 ClosedAt = open + TimeSpan.FromHours(2),
@@ -31,7 +31,7 @@ namespace RepoMan.UnitTests
             yield return new TestCaseData(sameDay, 50d)
                 .SetName("Opened the same days = 50 points");
             
-            var nextDay = new PullRequestDetails
+            var nextDay = new PullRequest
             {
                 OpenedAt = open,
                 ClosedAt = open + TimeSpan.FromHours(26),
@@ -39,7 +39,7 @@ namespace RepoMan.UnitTests
             yield return new TestCaseData(nextDay, 50d)
                 .SetName("Closed in 1 business day = 50 points");
             
-            var twoDays = new PullRequestDetails
+            var twoDays = new PullRequest
             {
                 OpenedAt = open,
                 ClosedAt = open + TimeSpan.FromHours(50),
@@ -47,7 +47,7 @@ namespace RepoMan.UnitTests
             yield return new TestCaseData(twoDays, 40d)
                 .SetName("Closed in 2 business days = 40 points");
             
-            var sixDays = new PullRequestDetails
+            var sixDays = new PullRequest
             {
                 OpenedAt = open,
                 ClosedAt = open + TimeSpan.FromDays(7) + TimeSpan.FromHours(2),
@@ -55,7 +55,7 @@ namespace RepoMan.UnitTests
             yield return new TestCaseData(sixDays, 0d)
                 .SetName("Closed in 6 days = 0 points");
             
-            var sevenDays = new PullRequestDetails
+            var sevenDays = new PullRequest
             {
                 OpenedAt = open,
                 ClosedAt = open + TimeSpan.FromDays(8),
@@ -65,7 +65,7 @@ namespace RepoMan.UnitTests
 
             var twentyWeekends = TimeSpan.FromDays(20 * 2);
             var twentyWorkWeeks = TimeSpan.FromDays(5 * 20);
-            var oneHundredDays = new PullRequestDetails
+            var oneHundredDays = new PullRequest
             {
                 OpenedAt = open,
                 ClosedAt = open + twentyWeekends + twentyWorkWeeks + TimeSpan.FromHours(1),

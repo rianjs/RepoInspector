@@ -18,7 +18,7 @@ namespace RepoMan.Analysis.Scoring
         // time to become an expert on balancing groups in .NET regular expressions while my daughter is taking a nap.
         private static readonly Regex _codeFragment = new Regex(@"`([^\`].*?)\`", RegexOptions.Compiled | RegexOptions.Multiline);
 
-        public override int Count(PullRequestDetails prDetails)
+        public override int Count(PullRequest prDetails)
         {
             var codeFenceCount = prDetails.AllComments
                 .SelectMany(c => Extract(c.Text))

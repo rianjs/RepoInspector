@@ -16,7 +16,7 @@ namespace RepoMan.Analysis.Scoring
         
         private static readonly Regex _url = new Regex(@"(https?):\/\/[^\s$.?#].[^\s]*", RegexOptions.Compiled | RegexOptions.Multiline);
 
-        public override int Count(PullRequestDetails prDetails)
+        public override int Count(PullRequest prDetails)
         {
             var urlCount = prDetails.AllComments
                 .SelectMany(c => Extract(c.Text))

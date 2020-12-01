@@ -19,7 +19,7 @@ namespace RepoMan.Analysis.Scoring
             _approvalAnalyzer = approvalAnalyzer ?? throw new ArgumentNullException(nameof(approvalAnalyzer));
         }
 
-        public override int Count(PullRequestDetails prDetails)
+        public override int Count(PullRequest prDetails)
         {
             return prDetails.ReviewComments
                 .Where(rc => _approvalAnalyzer.IsApproved(rc))

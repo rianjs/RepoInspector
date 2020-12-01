@@ -6,7 +6,7 @@ using Octokit;
 
 namespace RepoMan.Records
 {
-    public class PullRequestDetails
+    public class PullRequest
     {
         public int Number { get; set; }
         public long Id { get; set; }

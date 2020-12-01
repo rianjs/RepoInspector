@@ -19,7 +19,7 @@ namespace RepoMan.Analysis
                 ?? throw new ArgumentNullException(nameof(scorers));
         }
 
-        public PullRequestMetrics CalculatePullRequestMetrics(PullRequestDetails prDetails)
+        public PullRequestMetrics CalculatePullRequestMetrics(PullRequest prDetails)
         {
             var scores = _scorers.Values
                 .Select(s => s.GetScore(prDetails))
