@@ -1,7 +1,6 @@
-using System.Text.Json.Serialization;
-using RepoMan.Serialization;
+﻿using System.Text.Json.Serialization;
 
-namespace RepoMan.Analysis.Scoring
+namespace RepoMan.Records
 {
     public class Score
     {

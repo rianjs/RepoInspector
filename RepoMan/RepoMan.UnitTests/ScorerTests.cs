@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using RepoMan.Analysis.Scoring;
+using RepoMan.Records;
 using RepoMan.Repository;
 
 namespace RepoMan.UnitTests
@@ -29,9 +30,7 @@ namespace RepoMan.UnitTests
             };
             
             // Crazy github string has 5 code fences, and 2 code fragments = score of 54
-            // var codeFragments = _fragmentScorer.Count(prDetail);
             var fragmentScore = _fragmentScorer.GetScore(prDetail);
-            // var codeFences = _fenceScorer.Count(CodeBlockTests.FiveMatchesFromGitHub);
             var fenceScore = new CodeFenceScorer().GetScore(prDetail);
             
             var codeScore = fragmentScore.Points + fenceScore.Points;

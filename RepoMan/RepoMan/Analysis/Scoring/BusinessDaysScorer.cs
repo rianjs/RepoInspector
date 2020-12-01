@@ -1,4 +1,5 @@
 using System;
+using RepoMan.Records;
 using RepoMan.Repository;
 
 namespace RepoMan.Analysis.Scoring

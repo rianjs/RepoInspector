@@ -1,3 +1,4 @@
+using RepoMan.Records;
 using RepoMan.Repository;
 
 namespace RepoMan.Analysis.ApprovalAnalyzers

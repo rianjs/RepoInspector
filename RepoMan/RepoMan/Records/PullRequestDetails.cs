@@ -1,24 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Octokit;
 
-namespace RepoMan.Repository
+namespace RepoMan.Records
 {
-    public class TargetRepository
-    {
-        public long Id { get; set; }
-        public string HtmlUrl { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public DateTimeOffset CreatedAt { get; set; }
-        public DateTimeOffset UpdatedAt { get; set; }
-        public DateTimeOffset PushedAt { get; set; }
-        public long Size { get; set; }
-        public bool IsArchived { get; set; }
-    }
-    
     public class PullRequestDetails
     {
         public int Number { get; set; }
@@ -61,7 +48,6 @@ namespace RepoMan.Repository
         /// <summary>
         /// The comments associated with a line of code, or range of lines of code.
         /// </summary>
-        /// <param name="prDetails"></param>
         /// <param name="prReviewComments"></param>
         /// <returns></returns>
         public void UpdateDiffComments(IEnumerable<PullRequestReviewComment> prReviewComments)
@@ -156,27 +142,5 @@ namespace RepoMan.Repository
         [JsonIgnore]
         public IEnumerable<Comment> AllComments
             => ReviewComments.Concat(DiffComments).Concat(CommitComments);
-    }
-
-    public class Comment
-    {
-        public long Id { get; set; }
-        public User User { get; set; }
-        public string HtmlUrl { get; set; }
-        public DateTimeOffset CreatedAt { get; set; }
-        public DateTimeOffset UpdatedAt { get; set; }
-        
-        /// <summary>
-        /// Null, unless the comment is associated with a review comment where someone has approved it, or requested changes or whatever
-        /// </summary>
-        public string ReviewState { get; set; }
-        public string Text { get; set; }
-    }
-
-    public class User
-    {
-        public long Id { get; set; }
-        public string Login { get; set; }
-        public string HtmlUrl { get; set; }
     }
 }

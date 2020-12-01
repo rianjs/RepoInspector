@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Octokit;
+using RepoMan.Records;
 
 namespace RepoMan.Repository
 {

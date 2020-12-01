@@ -1,7 +1,7 @@
 using System;
 using Newtonsoft.Json;
 
-namespace RepoMan.Serialization
+namespace RepoMan.Records
 {
     /// <summary>
     /// Some values cannot be represented with a double, even when you round. For example, rounding 3.7222799322868645 using the classical technical results in

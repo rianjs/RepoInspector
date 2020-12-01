@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Octokit;
 using RepoMan.Analysis.Normalization;
+using RepoMan.Records;
+using User = RepoMan.Records.User;
 
 namespace RepoMan.Repository
 {
