@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Octokit;
 using RepoMan.Records;
 using PullRequest = RepoMan.Records.PullRequest;
 
@@ -17,7 +16,7 @@ namespace RepoMan.Repository
         /// </summary>
         /// <param name="stateFilter"></param>
         /// <returns>A collection of all of the new or updated pull requests that were unknown to or had to be updated in the manager</returns>
-        Task<IList<PullRequest>> RefreshFromUpstreamAsync(ItemStateFilter stateFilter);
+        Task<IList<PullRequest>> RefreshFromUpstreamAsync(ItemState stateFilter);
         
         /// <summary>
         /// Returns the number of pull requests in the cache that have been fully populated

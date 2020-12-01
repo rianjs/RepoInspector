@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using RepoMan.Analysis.ApprovalAnalyzers;
 using RepoMan.Records;
-using RepoMan.Repository;
 
 namespace RepoMan.Analysis.Scoring
 {

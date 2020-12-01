@@ -13,7 +13,7 @@ namespace RepoMan.Records
         /// <summary>
         /// Null, unless the comment is associated with a review comment where someone has approved it, or requested changes or whatever
         /// </summary>
-        public string ReviewState { get; set; }
+        public PullRequestReviewState ReviewState { get; set; }
         public string Text { get; set; }
     }
 }

@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using RepoMan.Analysis;
 using RepoMan.Records;
-using RepoMan.Repository;
 
 namespace RepoMan.IO
 {

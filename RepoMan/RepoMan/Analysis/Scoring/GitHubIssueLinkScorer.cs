@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using RepoMan.Records;
-using RepoMan.Repository;
 
 namespace RepoMan.Analysis.Scoring
 {

@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Octokit;
 using RepoMan.Analysis;
 using RepoMan.IO;
 using Serilog;
@@ -42,7 +41,7 @@ namespace RepoMan.Repository
             _logger.Information($"{Name} work loop starting");
             var timer = Stopwatch.StartNew();
             
-            var newPrs = await _repoManager.RefreshFromUpstreamAsync(ItemStateFilter.Closed);
+            var newPrs = await _repoManager.RefreshFromUpstreamAsync(ItemState.Closed);
 
             _logger.Information($"{Name} comment analysis starting for {newPrs.Count:N0} pull requests");
             var analysisTimer = Stopwatch.StartNew();

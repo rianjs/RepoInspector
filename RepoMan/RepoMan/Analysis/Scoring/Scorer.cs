@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using RepoMan.Records;
-using RepoMan.Repository;
 
 namespace RepoMan.Analysis.Scoring
 {

@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Octokit;
 using RepoMan.IO;
 using RepoMan.Records;
 using Serilog;
@@ -116,11 +115,11 @@ namespace RepoMan.Repository
             }
             
             // If there's nothing in the cache, go look for stuff.
-            await repoHistoryMgr.RefreshFromUpstreamAsync(ItemStateFilter.Closed);
+            await repoHistoryMgr.RefreshFromUpstreamAsync(ItemState.Closed);
             return repoHistoryMgr;
         }
 
-        public async Task<IList<PullRequest>> RefreshFromUpstreamAsync(ItemStateFilter stateFilter)
+        public async Task<IList<PullRequest>> RefreshFromUpstreamAsync(ItemState stateFilter)
         {
             var prs = await _prReader.GetPullRequestsRootAsync(stateFilter);
             var unknownPrs = new List<PullRequest>();            

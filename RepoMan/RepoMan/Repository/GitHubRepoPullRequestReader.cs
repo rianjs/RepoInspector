@@ -47,11 +47,11 @@ namespace RepoMan.Repository
         /// </summary>
         /// <param name="stateFilter"></param>
         /// <returns></returns>
-        public async Task<IList<PullRequest>> GetPullRequestsRootAsync(ItemStateFilter stateFilter)
+        public async Task<IList<PullRequest>> GetPullRequestsRootAsync(ItemState stateFilter)
         {
             var prOpts = new PullRequestRequest
             {
-                State = stateFilter,
+                State = stateFilter.ToItemStateFilter(),
                 SortProperty = PullRequestSort.Created,
                 SortDirection = SortDirection.Ascending,
             };
@@ -87,9 +87,14 @@ namespace RepoMan.Repository
                 return false;
             }
 
-            pullRequest.UpdateDiffComments(diffReviewCommentsTask.Result);
-            pullRequest.UpdateDiscussionComments(generalPrCommentsTask.Result);
-            pullRequest.UpdateStateTransitionComments(approvalSummariesTask.Result);
+            var diffReviewComments = diffReviewCommentsTask.Result.Select(c => c.FromPullRequestReviewComment());
+            pullRequest.UpdateDiffComments(diffReviewComments);
+
+            var generalPrComments = generalPrCommentsTask.Result.Select(c => c.FromIssueComment());
+            pullRequest.UpdateDiscussionComments(generalPrComments);
+            
+            var stateTransitionComments = approvalSummariesTask.Result.Select(c => c.FromPullRequestReviewSummary());
+            pullRequest.UpdateStateTransitionComments(stateTransitionComments);
 
             return true;
         }

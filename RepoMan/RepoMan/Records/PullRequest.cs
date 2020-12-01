@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
-using Octokit;
 
 namespace RepoMan.Records
 {
@@ -50,65 +49,18 @@ namespace RepoMan.Records
         /// </summary>
         /// <param name="prReviewComments"></param>
         /// <returns></returns>
-        public void UpdateDiffComments(IEnumerable<PullRequestReviewComment> prReviewComments)
+        public void UpdateDiffComments(IEnumerable<Comment> prReviewComments)
         {
-            DiffComments.AddRange(prReviewComments.Select(GetComment));
-        }
-        
-        private static Comment GetComment(PullRequestReviewComment prComment)
-        {
-            return new Comment
-            {
-                Id = prComment.Id,
-                HtmlUrl = prComment.HtmlUrl,
-                Text = prComment.Body,
-                CreatedAt = prComment.CreatedAt,
-                UpdatedAt = prComment.UpdatedAt,
-                User = new User
-                {
-                    Id = prComment.User.Id,
-                    Login = prComment.User.Login,
-                },
-            };
+            DiffComments.AddRange(prReviewComments);
         }
         
         /// <summary>
         /// The comments associated with when someone clicks the Approve or Changes Requested button in the approval workflow 
         /// </summary>
-        /// <param name="prDetails"></param>
-        /// <param name="stateTransitionComments"></param>
         /// <returns></returns>
-        public void UpdateStateTransitionComments(IEnumerable<PullRequestReview> commentsForStateTransition)
+        public void UpdateStateTransitionComments(IEnumerable<Comment> commentsForStateTransition)
         {
-            ReviewComments.AddRange(commentsForStateTransition.Select(GetComment));
-        }
-        
-        private static Comment GetComment(PullRequestReview prReview)
-        {
-            return new Comment
-            {
-                Id = prReview.Id,
-                HtmlUrl = prReview.HtmlUrl,
-                Text = prReview.Body,
-                CreatedAt = prReview.SubmittedAt,
-                UpdatedAt = DateTimeOffset.MinValue,
-                User = new User
-                {
-                    Id = prReview.User.Id,
-                    Login = prReview.User.Login,
-                },
-                ReviewState = GetReviewState(prReview.State),
-            };
-        }
-        
-        private static string GetReviewState(StringEnum<PullRequestReviewState> state)
-        {
-            if (state == PullRequestReviewState.Commented)
-            {
-                return null;
-            }
-
-            return state.StringValue;
+            ReviewComments.AddRange(commentsForStateTransition);
         }
         
         /// <summary>
@@ -117,26 +69,9 @@ namespace RepoMan.Records
         /// <param name="generalPrComments"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public void UpdateDiscussionComments(IReadOnlyList<IssueComment> generalPrComments)
+        public void UpdateDiscussionComments(IEnumerable<Comment> generalPrComments)
         {
-            ReviewComments.AddRange(generalPrComments.Select(GetComment));
-        }
-
-        private static Comment GetComment(IssueComment issueComment)
-        {
-            return new Comment
-            {
-                Id = issueComment.Id,
-                HtmlUrl = issueComment.HtmlUrl,
-                Text = issueComment.Body,
-                CreatedAt = issueComment.CreatedAt,
-                UpdatedAt = issueComment.UpdatedAt ?? DateTimeOffset.MinValue,
-                User = new User
-                {
-                    Id = issueComment.User.Id,
-                    Login = issueComment.User.Login,
-                },
-            };
+            ReviewComments.AddRange(generalPrComments);
         }
 
         [JsonIgnore]

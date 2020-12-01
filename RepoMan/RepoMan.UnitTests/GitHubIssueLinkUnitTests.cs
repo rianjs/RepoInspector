@@ -3,7 +3,6 @@ using NUnit.Framework;
 using NUnit.Framework.Interfaces;
 using RepoMan.Analysis.Scoring;
 using RepoMan.Records;
-using RepoMan.Repository;
 
 namespace RepoMan.UnitTests
 {

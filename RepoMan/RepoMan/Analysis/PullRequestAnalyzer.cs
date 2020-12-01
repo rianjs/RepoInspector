@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
 using RepoMan.Analysis.Scoring;
 using RepoMan.Records;
-using RepoMan.Repository;
 
 namespace RepoMan.Analysis
 {
