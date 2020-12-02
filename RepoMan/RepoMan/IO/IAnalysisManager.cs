@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using RepoMan.Analysis;
+using RepoMan.Records;
 
 namespace RepoMan.IO
 {
