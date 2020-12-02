@@ -53,7 +53,7 @@ namespace RepoMan.Repository
             
             _logger.Information($"{Name} repository analysis starting for {newPrs.Count:N0} pull requests");
             analysisTimer = Stopwatch.StartNew();
-            var repoAnalysis = _repoAnalyzer.CalculateRepositoryMetrics(prAnalysis);
+            var repoAnalysis = _repoAnalyzer.CalculateRepositoryMetrics(_repoManager.RepoOwner, _repoManager.RepoName, _repoManager.RepoUrl, prAnalysis);
             analysisTimer.Stop();
             _logger.Information($"{Name} repository analysis completed for {newPrs.Count:N0} pull requests in {analysisTimer.Elapsed.ToMicroseconds():N0} microseconds");
 

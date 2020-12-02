@@ -125,6 +125,7 @@ namespace RepoMan
                 select RepositoryManager.InitializeAsync(
                     repo.Owner,
                     repo.RepositoryName,
+                    repo.BaseUrl,
                     prReader,
                     serviceProvider.GetRequiredService<IPullRequestCacheManager>(),
                     dosBuffer,

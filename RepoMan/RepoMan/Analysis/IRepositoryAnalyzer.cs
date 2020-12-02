@@ -9,6 +9,6 @@ namespace RepoMan.Analysis
     /// </summary>
     public interface IRepositoryAnalyzer
     {
-        RepositoryMetrics CalculateRepositoryMetrics(ICollection<PullRequestMetrics> snapshots);
+        RepositoryMetrics CalculateRepositoryMetrics(string repoOwner, string repoName, string repoHtmlUrl, IList<PullRequestMetrics> prMetrics);
     }
 }

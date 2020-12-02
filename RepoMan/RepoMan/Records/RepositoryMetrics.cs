@@ -6,10 +6,11 @@ namespace RepoMan.Records
 {
     public class RepositoryMetrics
     {
-        public DateTimeOffset Timestamp { get; set; }
-        
-        public HashSet<int> PullRequests { get; set; }
-        public int PullRequestCount => PullRequests.Count;
+        public string Owner { get; set; }
+        public string Name { get; set; }
+        public string Url { get; set; }
+        public DateTimeOffset GeneratedAt { get; set; }
+        public int PullRequestCount => PullRequestMetrics.Count;
         
         public int MedianCommentCountPerPullRequest { get; set; }
         public int MedianWordsPerComment { get; set; }
@@ -28,5 +29,7 @@ namespace RepoMan.Records
         
         public int MedianSecondsToPullRequestClosure { get; set; }
         public int MedianBusinessDaysToPullRequestClosure { get; set; }
+        
+        public IDictionary<int, PullRequestMetrics> PullRequestMetrics { get; set; }
     }
 }
