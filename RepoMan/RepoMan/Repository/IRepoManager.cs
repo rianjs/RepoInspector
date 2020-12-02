@@ -32,6 +32,8 @@ namespace RepoMan.Repository
         /// <returns>null if the pull request number is not present</returns>
         ValueTask<PullRequest> GetPullRequestByNumber(int prNumber);
 
+        ValueTask<IList<PullRequest>> GetPullRequestsByNumber(IEnumerable<int> prNumbers);
+
         ValueTask<IList<PullRequest>> GetPullRequestsAsync();
 
         /// <summary>

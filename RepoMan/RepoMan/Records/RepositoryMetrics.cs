@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using RepoMan.Analysis.Scoring;
 
 namespace RepoMan.Records
 {
@@ -9,8 +10,11 @@ namespace RepoMan.Records
         public string Owner { get; set; }
         public string Name { get; set; }
         public string Url { get; set; }
-        public DateTimeOffset GeneratedAt { get; set; }
-        public int PullRequestCount => PullRequestMetrics.Count;
+        public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset UpdatedAt { get; set; }
+        public int PullRequestCount => PullRequestMetrics?.Count ?? 0;
+        
+        public HashSet<Scorer> Scorers { get; set; }
         
         public int MedianCommentCountPerPullRequest { get; set; }
         public int MedianWordsPerComment { get; set; }

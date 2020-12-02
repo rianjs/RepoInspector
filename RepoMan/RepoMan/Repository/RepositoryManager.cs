@@ -141,7 +141,7 @@ namespace RepoMan.Repository
             try
             {
                 await _byNumberLock.WaitAsync();
-                var newOrUpdatedPullRequestsQuery = prs.Where(pr => !_byNumber.ContainsKey(pr.Number) || _byNumber[pr.Number].UpdatedAt <= pr.UpdatedAt);
+                var newOrUpdatedPullRequestsQuery = prs.Where(pr => !_byNumber.ContainsKey(pr.Number) || _byNumber[pr.Number].UpdatedAt < pr.UpdatedAt);
                 unknownPrs.AddRange(newOrUpdatedPullRequestsQuery);
             }
             finally
@@ -279,6 +279,32 @@ namespace RepoMan.Repository
                 return _byNumber.ContainsKey(prNumber)
                     ? _byNumber[prNumber]
                     : null;
+            }
+            finally
+            {
+                _byNumberLock.Release();
+            }
+        }
+        
+        /// <summary>
+        /// </summary>
+        /// <param name="prNumber"></param>
+        /// <returns>Null if the pull request number is not found</returns>
+        public async ValueTask<IList<PullRequest>> GetPullRequestsByNumber(IEnumerable<int> prNumbers)
+        {
+            if (prNumbers is null || !prNumbers.Any())
+            {
+                return new List<PullRequest>();
+            }
+            
+            try
+            {
+                await _byNumberLock.WaitAsync();
+                var prs = prNumbers
+                    .Where(nbr => _byNumber.ContainsKey(nbr))
+                    .Select(nbr => _byNumber[nbr])
+                    .ToList();
+                return prs;
             }
             finally
             {

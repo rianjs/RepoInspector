@@ -4,7 +4,6 @@ using RepoMan.Records;
 
 namespace RepoMan.Analysis.Scoring
 {
-    // It only counts as a comment if the word count is greater than 10 words.
     class CommentCountScorer :
         PullRequestScorer
     {
@@ -13,6 +12,8 @@ namespace RepoMan.Analysis.Scoring
         public override double ScoreMultiplier => 20;
         private readonly IWordCounter _wc;
         private const int _wordCountFloor = 10;
+        
+        public CommentCountScorer(){}    // For deserialization only
 
         public CommentCountScorer(IWordCounter wordCounter)
         {
