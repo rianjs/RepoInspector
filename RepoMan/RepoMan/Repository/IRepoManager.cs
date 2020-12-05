@@ -9,6 +9,7 @@ namespace RepoMan.Repository
     {
         string RepoOwner { get; }
         string RepoName { get; }
+        string RepoUrl { get; }
         
         /// <summary>
         /// Check the upstream git repo API for any pull requests that the cache manager doesn't know about. For any that are found, do a deep query to get all
@@ -30,6 +31,8 @@ namespace RepoMan.Repository
         /// <param name="prNumber"></param>
         /// <returns>null if the pull request number is not present</returns>
         ValueTask<PullRequest> GetPullRequestByNumber(int prNumber);
+
+        ValueTask<IList<PullRequest>> GetPullRequestsByNumber(IEnumerable<int> prNumbers);
 
         ValueTask<IList<PullRequest>> GetPullRequestsAsync();
 

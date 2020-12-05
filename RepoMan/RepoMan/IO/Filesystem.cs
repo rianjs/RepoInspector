@@ -10,5 +10,11 @@ namespace RepoMan.IO
 
         public Task FileWriteAllTextAsync(string path, string contents)
             => File.WriteAllTextAsync(path, contents);
+
+        public string[] DirectoryGetFiles(string parent, string searchPattern)
+            => Directory.GetFiles(parent, searchPattern);
+
+        public DirectoryInfo DirectoryCreateDirectory(string path)
+            => Directory.CreateDirectory(path);
     }
 }

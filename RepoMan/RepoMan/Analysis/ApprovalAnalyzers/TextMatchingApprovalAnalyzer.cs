@@ -35,8 +35,13 @@ namespace RepoMan.Analysis.ApprovalAnalyzers
         /// <returns></returns>
         public bool IsApproved(Comment comment)
         {
+            if (comment.ReviewState is null)
+            {
+                return false;
+            }
+            
             // TODO: This is so ugly...
-            var asString = comment.ReviewState.ToOctokitString();
+            var asString = comment.ReviewState?.ToOctokitString();
             if (_approvalStates.Contains(asString))
             {
                 return true;

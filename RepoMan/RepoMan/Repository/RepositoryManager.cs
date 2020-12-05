@@ -20,6 +20,7 @@ namespace RepoMan.Repository
     {
         public string RepoOwner { get; }
         public string RepoName { get; }
+        public string RepoUrl { get; }
         private readonly string _fullName;
         private readonly IRepoPullRequestReader _prReader;
         private readonly IPullRequestCacheManager _cacheManager;
@@ -32,6 +33,7 @@ namespace RepoMan.Repository
         private RepositoryManager(
             string repoOwner,
             string repoName,
+            string repoUrl,
             string fullName,
             IRepoPullRequestReader prReader,
             IPullRequestCacheManager cacheManager,
@@ -41,6 +43,7 @@ namespace RepoMan.Repository
         {
             RepoOwner = repoOwner;
             RepoName = repoName;
+            RepoUrl = repoUrl;
             _fullName = fullName;
             _prReader = prReader;
             _cacheManager = cacheManager;
@@ -52,6 +55,7 @@ namespace RepoMan.Repository
         public static async Task<IRepoManager> InitializeAsync(
             string repoOwner,
             string repoName,
+            string repoUrl,
             IRepoPullRequestReader prReader,
             IPullRequestCacheManager cacheManager,
             TimeSpan prApiDosBuffer,
@@ -66,6 +70,16 @@ namespace RepoMan.Repository
             if (string.IsNullOrWhiteSpace(repoName))
             {
                 throw new ArgumentNullException(nameof(repoName));
+            }
+
+            if (string.IsNullOrWhiteSpace(repoUrl))
+            {
+                throw new ArgumentNullException(nameof(repoUrl));
+            }
+
+            if (!Uri.TryCreate(repoUrl, UriKind.Absolute, out var _))
+            {
+                throw new ArgumentException($"'{repoUrl}' is not a valid URL");
             }
             
             if (prReader is null)
@@ -107,7 +121,7 @@ namespace RepoMan.Repository
             timer.Stop();
             logger.Information($"{fullName} initialized the cache with {byNumber.Count:N0} pull requests in {timer.ElapsedMilliseconds:N0}ms");
             
-            var repoHistoryMgr = new RepositoryManager(repoOwner, repoName, fullName, prReader, cacheManager, prApiDosBuffer, byNumber, logger);
+            var repoHistoryMgr = new RepositoryManager(repoOwner, repoName, repoUrl, fullName, prReader, cacheManager, prApiDosBuffer, byNumber, logger);
 
             if (!refreshFromUpstream)
             {
@@ -127,7 +141,7 @@ namespace RepoMan.Repository
             try
             {
                 await _byNumberLock.WaitAsync();
-                var newOrUpdatedPullRequestsQuery = prs.Where(pr => !_byNumber.ContainsKey(pr.Number) || _byNumber[pr.Number].UpdatedAt <= pr.UpdatedAt);
+                var newOrUpdatedPullRequestsQuery = prs.Where(pr => !_byNumber.ContainsKey(pr.Number) || _byNumber[pr.Number].UpdatedAt < pr.UpdatedAt);
                 unknownPrs.AddRange(newOrUpdatedPullRequestsQuery);
             }
             finally
@@ -265,6 +279,32 @@ namespace RepoMan.Repository
                 return _byNumber.ContainsKey(prNumber)
                     ? _byNumber[prNumber]
                     : null;
+            }
+            finally
+            {
+                _byNumberLock.Release();
+            }
+        }
+        
+        /// <summary>
+        /// </summary>
+        /// <param name="prNumber"></param>
+        /// <returns>Null if the pull request number is not found</returns>
+        public async ValueTask<IList<PullRequest>> GetPullRequestsByNumber(IEnumerable<int> prNumbers)
+        {
+            if (prNumbers is null || !prNumbers.Any())
+            {
+                return new List<PullRequest>();
+            }
+            
+            try
+            {
+                await _byNumberLock.WaitAsync();
+                var prs = prNumbers
+                    .Where(nbr => _byNumber.ContainsKey(nbr))
+                    .Select(nbr => _byNumber[nbr])
+                    .ToList();
+                return prs;
             }
             finally
             {

@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using RepoMan.Analysis.Scoring;
 using RepoMan.Records;
 
 namespace RepoMan.Analysis
@@ -8,5 +10,6 @@ namespace RepoMan.Analysis
     public interface IPullRequestAnalyzer
     {
         PullRequestMetrics CalculatePullRequestMetrics(PullRequest prDetails);
+        IImmutableSet<Scorer> Scorers { get; }
     }
 }

@@ -20,7 +20,7 @@ namespace RepoMan.Analysis
         
         public static long CalculateMedian(this IEnumerable<long> integers)
         {
-            if (!integers.Any())
+            if (integers is null || !integers.Any())
             {
                 return 0;
             }
@@ -50,7 +50,7 @@ namespace RepoMan.Analysis
         
         public static double CalculateMedian(this IEnumerable<double> doubles)
         {
-            if (!doubles.Any())
+            if (doubles is null || !doubles.Any())
             {
                 return 0;
             }
@@ -80,6 +80,11 @@ namespace RepoMan.Analysis
 
         public static double CalculatePopulationStdDeviation(this IEnumerable<double> values)
         {
+            if (values is null || values?.Any() == false)
+            {
+                return 0;
+            }
+            
             // The square root of the variance
             var variance = CalculatePopulationVariance(values);
             return Math.Sqrt(variance);
@@ -87,6 +92,10 @@ namespace RepoMan.Analysis
 
         public static double CalculatePopulationVariance(this IEnumerable<double> values)
         {
+            if (values is null || values?.Any() == false)
+            {
+                return 0;
+            }
             // The average of the squared differences from the Mean.
             var populationMean = values.Average();
             var variance = values.Average(v => (v - populationMean) * (v - populationMean));

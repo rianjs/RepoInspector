@@ -12,6 +12,8 @@ namespace RepoMan.Analysis.Scoring
         public override string Attribute => Label;
         public override double ScoreMultiplier => 25;
         private readonly IApprovalAnalyzer _approvalAnalyzer;
+        
+        public ApprovalScorer(){}    // For deserialization only
 
         public ApprovalScorer(IApprovalAnalyzer approvalAnalyzer)
         {

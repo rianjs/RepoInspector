@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using RepoMan.Analysis.Scoring;
 using RepoMan.Records;
@@ -10,11 +11,13 @@ namespace RepoMan.Analysis
         IPullRequestAnalyzer
     {
         private readonly Dictionary<string, Scorer> _scorers;
+        public IImmutableSet<Scorer> Scorers { get; }
 
         public PullRequestAnalyzer(IEnumerable<Scorer> scorers)
         {
             _scorers = scorers?.ToDictionary(s => s.Attribute, s => s, StringComparer.Ordinal)
                 ?? throw new ArgumentNullException(nameof(scorers));
+            Scorers = _scorers.Values.ToImmutableHashSet();
         }
 
         public PullRequestMetrics CalculatePullRequestMetrics(PullRequest prDetails)

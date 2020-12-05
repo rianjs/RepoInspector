@@ -13,6 +13,8 @@ namespace RepoMan.Analysis.Scoring
         public override string Attribute => Label;
 
         private readonly IWordCounter _wc;
+        
+        public WordCountScorer(){}    // For deserialization only
 
         public WordCountScorer(IWordCounter wordCounter)
         {

@@ -32,7 +32,6 @@ namespace RepoMan
         private static readonly string _scratchDir = GetScratchDirectory();
         private static readonly string _url = "https://github.com";
         private static readonly string _token = File.ReadAllText(_tokenPath).Trim();
-        private static readonly JsonSerializerSettings _jsonSerializerSettings = GetDebugJsonSerializerSettings();
         private static readonly ILogger _logger = GetLogger();
         private static readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
@@ -76,11 +75,16 @@ namespace RepoMan
                 .AddSingleton<IFilesystem>(sp => new Filesystem())
                 .AddSingleton<IClock, Clock>()
                 .AddSingleton(sp => _logger)
-                .AddSingleton(sp => new FilesystemDataProvider(sp.GetRequiredService<IFilesystem>(), _scratchDir, _jsonSerializerSettings))
-                .AddSingleton<IPullRequestCacheManager>(sp => sp.GetRequiredService<FilesystemDataProvider>())
-                .AddSingleton<IAnalysisManager>(sp => sp.GetRequiredService<FilesystemDataProvider>())
                 .AddSingleton<IWordCounter, WordCounter>()
                 .AddSingleton<HtmlCommentStripper>()
+                .AddSingleton(sp => GetKnownScorers(
+                    approvalAnalyzer: sp.GetRequiredService<GitHubApprovalAnalyzer>(),
+                    wc: sp.GetRequiredService<IWordCounter>()))
+                .AddSingleton(sp => new ScorerConverter(sp.GetRequiredService<IScorerFactory>()))
+                .AddSingleton(sp => GetDebugJsonSerializerSettings(sp.GetRequiredService<IScorerFactory>()))
+                .AddSingleton(sp => new FilesystemDataProvider(sp.GetRequiredService<IFilesystem>(), _scratchDir, sp.GetRequiredService<JsonSerializerSettings>()))
+                .AddSingleton<IPullRequestCacheManager>(sp => sp.GetRequiredService<FilesystemDataProvider>())
+                .AddSingleton<IAnalysisManager>(sp => sp.GetRequiredService<FilesystemDataProvider>())
                 // CommentScorers
                 .AddSingleton<UrlScorer>()
                 .AddSingleton<CodeFenceScorer>()
@@ -125,6 +129,7 @@ namespace RepoMan
                 select RepositoryManager.InitializeAsync(
                     repo.Owner,
                     repo.RepositoryName,
+                    repo.BaseUrl,
                     prReader,
                     serviceProvider.GetRequiredService<IPullRequestCacheManager>(),
                     dosBuffer,
@@ -133,19 +138,23 @@ namespace RepoMan
             var watcherInitializationTasks = repoMgrInitializationQuery.ToList();
             await Task.WhenAll(watcherInitializationTasks);
             
-            var loopServices = watcherInitializationTasks
+            var repoWorkerInitialization = watcherInitializationTasks
                 .Select(t => t.Result)
-                .Select(repoManager => new RepoWorker(
+                .Select(async repoManager => await RepoWorker.InitializeAsync(
                     repoManager,
                     serviceProvider.GetRequiredService<IPullRequestAnalyzer>(),
                     serviceProvider.GetRequiredService<IRepositoryAnalyzer>(),
                     serviceProvider.GetRequiredService<IAnalysisManager>(),
                     serviceProvider.GetRequiredService<IClock>(),
                     _logger))
+                .ToList();
+            await Task.WhenAll(repoWorkerInitialization);
+            
+            var loopServices = repoWorkerInitialization
+                .Select(rwi => rwi.Result)
                 .Select(rw => new LoopService(rw, loopDelay, _cts, _logger))
                 .Select(l => l.LoopAsync())
                 .ToList();
-
             await Task.WhenAll(loopServices);
         }
 
@@ -185,7 +194,7 @@ namespace RepoMan
                 .CreateLogger();
         }
 
-        private static JsonSerializerSettings GetDebugJsonSerializerSettings()
+        private static JsonSerializerSettings GetDebugJsonSerializerSettings(IScorerFactory scorerFactory)
         {
             return new JsonSerializerSettings
             {
@@ -196,7 +205,7 @@ namespace RepoMan
                 //Otherwise:
                 // DefaultValueHandling = DefaultValueHandling.Ignore,
                 DateFormatHandling = DateFormatHandling.IsoDateFormat,
-                Converters = new List<JsonConverter> { new StringEnumConverter(), new TruncatingDoubleConverter(), },
+                Converters = new List<JsonConverter> { new StringEnumConverter(), new TruncatingDoubleConverter(), new ScorerConverter(scorerFactory) },
             };
         }
 
@@ -243,6 +252,45 @@ namespace RepoMan
             stopwatch.Stop();
 
             _logger.Information($"Daemon stopped in {stopwatch.ElapsedMilliseconds:N0}ms");
+        }
+        
+        private static IScorerFactory GetKnownScorers(IApprovalAnalyzer approvalAnalyzer, IWordCounter wc)
+        {
+            var scorers = GetDerivedTypes<Scorer>(Assembly.GetAssembly(typeof(Scorer)));
+            var scorerInstances = scorers
+                .Select(s => CreateInstance(s, approvalAnalyzer, wc))
+                .Cast<Scorer>()
+                .ToDictionary(s => s.Attribute, StringComparer.OrdinalIgnoreCase);
+            
+            return new ScorerFactory(scorerInstances);
+        }
+        
+        private static IEnumerable<Type> GetDerivedTypes<T>(Assembly assembly)
+        {
+            var derivedType = typeof(T);
+            return assembly
+                .GetTypes()
+                .Where(t => t != derivedType && derivedType.IsAssignableFrom(t) && !t.IsAbstract);
+        }
+        
+        private static object CreateInstance(Type s, IApprovalAnalyzer approvalAnalyzer, IWordCounter wc)
+        {
+            if (s == typeof(ApprovalScorer))
+            {
+                return Activator.CreateInstance(typeof(ApprovalScorer), approvalAnalyzer);
+            }
+
+            if (s == typeof(CommentCountScorer))
+            {
+                return Activator.CreateInstance(typeof(CommentCountScorer), wc);
+            }
+
+            if (s == typeof(WordCountScorer))
+            {
+                return Activator.CreateInstance(typeof(WordCountScorer), wc);
+            }
+            
+            return Activator.CreateInstance(s);
         }
     }
 }
