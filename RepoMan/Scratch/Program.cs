@@ -1,45 +1,54 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
+using RepoMan;
+using RepoMan.Repository;
+using Serilog;
 
 namespace Scratch
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            var val = 3.7222799322868645d;
-            var expected = 3.72d;
-            var actual = Math.Round(val, 2, MidpointRounding.AwayFromZero);  // 3.7200000000000002
-            var areEqual = actual == expected;    // true
-            var withinEpsilon = Math.Abs(actual - expected) < double.Epsilon; // also true
-
+            var logger = GetLogger();
+            var clock = new Clock();
             var jsonSettings = GetDebugJsonSerializerSettings();
-            var serialized = JsonConvert.SerializeObject(actual, typeof(ScoreConverter), jsonSettings);
-            var deserialized = JsonConvert.DeserializeObject<double>(serialized, jsonSettings);
+            var compressingRefreshingDnsHandler = new SocketsHttpHandler
+            {
+                PooledConnectionLifetime = TimeSpan.FromSeconds(120),
+                AutomaticDecompression = DecompressionMethods.All,
+            };
+
+            var hostname = "https://bitbucket.org";
+            var repoOwner = "medicalinformatics";
+            var repoName = "mainzelliste";
+            
+            var client = new HttpClient(compressingRefreshingDnsHandler);
+            var bbReader = new BitBucketCloudPullRequestReader(hostname, repoOwner, repoName, client, jsonSettings, clock, logger);
+            var result = await bbReader.GetPullRequestsRootAsync(ItemState.Closed);
             
             Console.WriteLine("Hello World!");
         }
-        
-        public class ScoreConverter : JsonConverter<double>
-        {
-            public override void WriteJson(JsonWriter writer, double value, JsonSerializer serializer)
-            {
-                writer.WriteValue($"{value:F2}");
-            }
 
-            public override double ReadJson(JsonReader reader, Type objectType, double existingValue, bool hasExistingValue, JsonSerializer serializer)
-            {
-                var s = (string) reader.Value;
-                if (string.IsNullOrWhiteSpace(s))
-                {
-                    throw new ArgumentNullException(nameof(reader.Value));
-                    
-                }
-                return double.Parse(s);
-            }
+        public static string GetJson()
+        {
+            var path = @"/Users/rianjs/dev/RepoMan/scratch/scratch.json";
+                
+            return File.ReadAllText(path);
+        }
+        
+        private static ILogger GetLogger()
+        {
+            return new LoggerConfiguration()
+                .WriteTo.Console()
+                .CreateLogger();
         }
 
         private static JsonSerializerSettings GetDebugJsonSerializerSettings()
@@ -53,7 +62,7 @@ namespace Scratch
                 //Otherwise:
                 // DefaultValueHandling = DefaultValueHandling.Ignore,
                 DateFormatHandling = DateFormatHandling.IsoDateFormat,
-                Converters = new List<JsonConverter> { new StringEnumConverter(), new ScoreConverter(), },
+                Converters = new List<JsonConverter> { new StringEnumConverter(), },
             };
         }
     }

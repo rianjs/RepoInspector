@@ -125,6 +125,5 @@ namespace RepoMan.Repository
                 MergedAt = octokitPr.MergedAt ?? DateTimeOffset.MaxValue,
             };
         }
-
     }
 }
