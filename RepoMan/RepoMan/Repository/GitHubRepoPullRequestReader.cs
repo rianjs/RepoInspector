@@ -113,7 +113,7 @@ namespace RepoMan.Repository
                 HtmlUrl = octokitPr.HtmlUrl,
                 Submitter = new User
                 {
-                    Id = octokitPr.User.Id,
+                    Id = octokitPr.User.Id.ToString(),
                     Login = octokitPr.User.Login,
                     HtmlUrl = octokitPr.User.HtmlUrl,
                 },

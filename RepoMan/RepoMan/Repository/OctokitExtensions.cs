@@ -18,7 +18,7 @@ namespace RepoMan.Repository
                 UpdatedAt = issueComment.UpdatedAt ?? DateTimeOffset.MinValue,
                 User = new User
                 {
-                    Id = issueComment.User.Id,
+                    Id = issueComment.User.Id.ToString(),
                     Login = issueComment.User.Login,
                 },
             };
@@ -35,7 +35,7 @@ namespace RepoMan.Repository
                 UpdatedAt = prComment.UpdatedAt,
                 User = new User
                 {
-                    Id = prComment.User.Id,
+                    Id = prComment.User.Id.ToString(),
                     Login = prComment.User.Login,
                 },
             };
@@ -52,7 +52,7 @@ namespace RepoMan.Repository
                 UpdatedAt = DateTimeOffset.MinValue,
                 User = new User
                 {
-                    Id = prReview.User.Id,
+                    Id = prReview.User.Id.ToString(),
                     Login = prReview.User.Login,
                 },
                 ReviewState = prReview.State.Value.FromPullRequestReviewState(),
