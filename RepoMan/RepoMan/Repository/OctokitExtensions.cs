@@ -1,7 +1,9 @@
 ﻿using System;
 using Octokit;
+using RepoMan.Records;
+using User = RepoMan.Records.User;
 
-namespace RepoMan.Records
+namespace RepoMan.Repository
 {
     public static class OctokitExtensions
     {
