@@ -100,18 +100,174 @@ namespace RepoMan.Repository
         public Task<IList<PullRequest>> GetPullRequestsRootAsync(ItemState stateFilter)
             => GetPullRequestsRootAsync(stateFilter, DateTimeOffset.MaxValue);
 
-        public Task<bool> TryFillCommentGraphAsync(PullRequest pullRequest)
+        public async Task<bool> TryFillCommentGraphAsync(PullRequest pullRequest)
         {
-            // The simplest way to get the comments for a PR is to query for `activities` which will show a lot more than comments, but it a reasonably complete
+            // The simplest way to get the comments for a PR is to query for `activities` which will show a lot more than comments, but is a reasonably complete
             // representation of stuff that happened on a PR. The comments API is fairly incomplete.
 
             // Get the first page: https://bitbucket.org/!api/2.0/repositories/{repoOwner}/{repoName}/pullrequests/{prNumber}/activity
             // Follow next until it's null
+            var url = $"{_prApiUrl}/{pullRequest.Number}/activity";
+            var activities = new List<Activity>();
+            var timer = Stopwatch.StartNew();
+            PullRequestActivityList page = null;
+            try
+            {
+                page = await GetPullRequestActivityListAsync(url);
+                activities.AddRange(page.Activities);
+            }
+            catch (Exception e)
+            {
+                _logger.Error($"Unable to get activities list: ' {url} '", e);
+                return false;
+            }
 
-            throw new System.NotImplementedException();
+            if (string.IsNullOrWhiteSpace(page.next))
+            {
+                return true;
+            }
+            
+            var completed = true;
+            _logger.Information($"Approximately {page.size:N0} pull requests to fetch in pages of size {page.pagelen:N0}");
+            var requestsToMake = page.size / (float) page.pagelen;
+            var approxPages = Convert.ToInt32(Math.Ceiling(requestsToMake));
+            var counter = 0;
+            var next = page.next;
+            while (!string.IsNullOrWhiteSpace(next))
+            {
+                _logger.Information($"{_repoTag} - pulling page {++counter:N0} / ~{approxPages:N0}");
+                var pageTimer = Stopwatch.StartNew();
+                PullRequestActivityList nextPage = null;
+                try
+                {
+                    nextPage = await GetPullRequestActivityListAsync(next);
+                }
+                catch (Exception e)
+                {
+                    _logger.Error($"Unable to get activities list: ' {url} '", e);
+                    _logger.Information($"{_repoTag} - stopping pull request query activity for parent ' {url} '");
+                    completed = false;
+                    break;
+                }
+
+                pageTimer.Stop();
+                next = nextPage.next;
+                activities.AddRange(nextPage.Activities);
+                _logger.Information($"{_repoTag} - page {counter:N0} / {approxPages:N0} pulled in ~{pageTimer.ElapsedMilliseconds:N0}ms");
+            }
+
+            timer.Stop();
+            _logger.Information($"{activities.Count:N0} discovered in {timer.ElapsedMilliseconds:N0}ms");
+
+            var reviewComments = activities
+                .Select(ToComment)
+                .Where(c => c is object);
+            pullRequest.UpdateDiscussionComments(reviewComments);
+            return completed;
         }
-        
+
+        private async Task<PullRequestActivityList> GetPullRequestActivityListAsync(string url)
+        {
+            using var response = await _bbClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStringAsync();
+            var listResult = JsonConvert.DeserializeObject<PullRequestActivityList>(json);
+            return listResult;
+        }
+
+        private Comment ToComment(Activity activity)
+        {
+            if (activity.Approval is object)
+            {
+                return new Comment
+                {
+                    Id = -1,
+                    CreatedAt = activity.Approval.Date,
+                    UpdatedAt = activity.Approval.Date,
+                    User = activity.Approval.BbUser.ToUser(),
+                    ReviewState = PullRequestReviewState.Approved,
+                };
+            }
+
+            if (activity.Comment is object)
+            {
+                return new Comment
+                {
+                    Id = activity.Comment.Id,
+                    Text = activity.Comment.Content.Raw.Trim(),
+                    CreatedAt = activity.Comment.CreatedOn,
+                    UpdatedAt = activity.Comment.UpdatedOn,
+                    HtmlUrl = activity.Comment.Links["html"].Href,
+                    ReviewState = null,
+                    User = activity.Comment.User.ToUser(),
+                };
+            }
+
+            return null;
+        }
+
         #region BitbucketDeserializationHelpers
+        
+        private class PullRequestActivityList
+        {
+            public int pagelen { get; set; }
+            public string next { get; set; }
+            public int page { get; set; }
+            public int size { get; set; }
+            
+            [JsonProperty("values")]
+            public List<Activity> Activities { get; set; }
+        }
+
+        private class Activity
+        {
+            [JsonProperty("approval", NullValueHandling = NullValueHandling.Ignore)]
+            public Approval Approval { get; set; }
+
+            [JsonProperty("comment", NullValueHandling = NullValueHandling.Ignore)]
+            public BitBucketCloudComment Comment { get; set; }
+        }
+
+        private class Approval
+        {
+            [JsonProperty("date")]
+            public DateTimeOffset Date { get; set; }
+
+            [JsonProperty("user")]
+            public BitBucketUser BbUser { get; set; }
+        }
+
+        private class BitBucketCloudComment
+        {
+            public Dictionary<string, Link> Links { get; set; }
+
+            [JsonProperty("deleted")]
+            public bool Deleted { get; set; }
+
+            [JsonProperty("content")]
+            public BitBucketCloudCommentContent Content { get; set; }
+
+            [JsonProperty("created_on")]
+            public DateTimeOffset CreatedOn { get; set; }
+
+            [JsonProperty("user")]
+            public BitBucketUser User { get; set; }
+
+            [JsonProperty("updated_on")]
+            public DateTimeOffset UpdatedOn { get; set; }
+
+            [JsonProperty("id")]
+            public long Id { get; set; }
+        }
+
+        private class BitBucketCloudCommentContent
+        {
+            public string Raw { get; set; }
+
+            // TODO: Figure out which is more appropriate: Raw or HTML. Unlike GitHub, Bitbucket stores HTML in its comments, and I think using raw will
+            // TODO: cause any embedded URLs and/or code blocks to be lost, and therefore not scored
+            public string Html { get; set; }
+        }
         
         private class BbCloudPullRequestListResult
         {
