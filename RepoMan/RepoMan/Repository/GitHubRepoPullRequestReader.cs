@@ -28,6 +28,7 @@ namespace RepoMan.Repository
         /// <param name="repoOwner"></param>
         /// <param name="repoName"></param>
         /// <param name="client">This client instance may be used across GitHubRepoPullRequestReader instances</param>
+        /// <param name="bodyNormalizer">This is a string normalizer used for cleansing content, general PR bodies</param>
         public GitHubRepoPullRequestReader(string repoOwner, string repoName, GitHubClient client, INormalizer bodyNormalizer)
         {
             _repoOwner = string.IsNullOrWhiteSpace(repoOwner)
@@ -117,6 +118,7 @@ namespace RepoMan.Repository
                     Login = octokitPr.User.Login,
                     HtmlUrl = octokitPr.User.HtmlUrl,
                 },
+                Title = octokitPr.Title,
                 Body = _bodyNormalizer.Normalize(octokitPr.Body)?.Trim(),
                 State = octokitPr.State.ToString(),
                 OpenedAt = octokitPr.CreatedAt,

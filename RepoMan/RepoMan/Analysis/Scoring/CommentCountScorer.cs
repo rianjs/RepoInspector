@@ -22,12 +22,13 @@ namespace RepoMan.Analysis.Scoring
 
         public override int Count(PullRequest prDetails)
         {
+            var titleCount = _wc.Count(prDetails.Title);
             var bodyCount = _wc.Count(prDetails.Body);
             var commentCount = prDetails.AllComments
                 .Select(c => _wc.Count(c.Text))
                 .Count();
 
-            return bodyCount + commentCount;
+            return titleCount + bodyCount + commentCount;
         }
     }
 }

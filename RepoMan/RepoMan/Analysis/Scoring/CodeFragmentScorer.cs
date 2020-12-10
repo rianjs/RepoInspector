@@ -23,10 +23,11 @@ namespace RepoMan.Analysis.Scoring
                 .SelectMany(c => Extract(c.Text))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Count();
-            
+
+            var titleCount = Extract(prDetails.Title).Count();
             var bodyCount = Extract(prDetails.Body).Count();
             
-            return codeFenceCount + bodyCount;
+            return codeFenceCount + titleCount + bodyCount;
         }
         
         
