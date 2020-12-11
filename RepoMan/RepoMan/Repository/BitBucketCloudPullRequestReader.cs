@@ -23,7 +23,7 @@ namespace RepoMan.Repository
 
         public BitBucketCloudPullRequestReader(string hostname, string repoOwner, string repoName, HttpClient client, JsonSerializerSettings jsonSerializerSettings, IClock clock, ILogger logger)
         {
-            if (!Uri.TryCreate(hostname, UriKind.Absolute, out var _)) throw new ArgumentException($"'{hostname}' is not a valid URL");
+            if (!Uri.TryCreate(hostname, UriKind.Absolute, out var uriHost)) throw new ArgumentException($"'{hostname}' is not a valid URL");
             if (string.IsNullOrWhiteSpace(repoOwner)) throw new ArgumentNullException(nameof(repoOwner));
             if (string.IsNullOrWhiteSpace(repoName)) throw new ArgumentNullException(nameof(repoName));
             _repoTag = $"{repoOwner}:{repoName}";
@@ -32,17 +32,8 @@ namespace RepoMan.Repository
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _bbClient = client ?? throw new ArgumentNullException(nameof(client));
 
-            var rawHostname = string.IsNullOrWhiteSpace(hostname)
-                ? throw new ArgumentNullException(nameof(hostname))
-                : hostname;
-            
-            const string apiSlug = "!api/2.0";
-
-            var normalizedApiHost = rawHostname.EndsWith("/", StringComparison.Ordinal)
-                ? $"{hostname}{apiSlug}"
-                : $"{hostname}/{apiSlug}";
-
-            _prApiUrl = $"{normalizedApiHost}/repositories/{repoOwner}/{repoName}/pullrequests";
+            var fullUrl = new Uri(uriHost, "!api/2.0");
+            _prApiUrl = $"{fullUrl}/repositories/{repoOwner}/{repoName}/pullrequests";
         }
 
         public async Task<IList<PullRequest>> GetPullRequestsRootAsync(ItemState stateFilter, DateTimeOffset lastCheck)
