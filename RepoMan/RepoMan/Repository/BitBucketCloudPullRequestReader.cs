@@ -84,7 +84,7 @@ namespace RepoMan.Repository
             using var response = await _bbClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync();
-            var listResult = JsonConvert.DeserializeObject<BbCloudPullRequestListResult>(json);
+            var listResult = JsonConvert.DeserializeObject<BbCloudPullRequestListResult>(json, _jsonSerializerSettings);
             return listResult;
         }
         
@@ -162,7 +162,7 @@ namespace RepoMan.Repository
             using var response = await _bbClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync();
-            var listResult = JsonConvert.DeserializeObject<PullRequestActivityList>(json);
+            var listResult = JsonConvert.DeserializeObject<PullRequestActivityList>(json, _jsonSerializerSettings);
             return listResult;
         }
 
