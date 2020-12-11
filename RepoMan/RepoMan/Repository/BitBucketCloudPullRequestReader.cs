@@ -21,7 +21,8 @@ namespace RepoMan.Repository
         private readonly IClock _clock;
         private readonly ILogger _logger;
 
-        public BitBucketCloudPullRequestReader(string hostname, string repoOwner, string repoName, HttpClient client, JsonSerializerSettings jsonSerializerSettings, IClock clock, ILogger logger)
+        public BitBucketCloudPullRequestReader(string hostname, string repoOwner, string repoName, HttpClient client,
+            JsonSerializerSettings jsonSerializerSettings, IClock clock, ILogger logger)
         {
             if (!Uri.TryCreate(hostname, UriKind.Absolute, out var uriHost)) throw new ArgumentException($"'{hostname}' is not a valid URL");
             if (string.IsNullOrWhiteSpace(repoOwner)) throw new ArgumentNullException(nameof(repoOwner));

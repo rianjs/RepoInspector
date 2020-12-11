@@ -109,7 +109,16 @@ namespace RepoMan.IO
             
             const string searchPattern = "*" + _analysisSuffix;
             var searchPath = GetPathToRepoDataFiles(repoOwner, repoName);
-            var matches = _fs.DirectoryGetFiles(searchPath, searchPattern);
+            string[] matches;
+            try
+            {
+                matches = _fs.DirectoryGetFiles(searchPath, searchPattern);
+            }
+            catch (DirectoryNotFoundException)
+            {
+                // DirectoryNotFound is normal when trying to read analytics from a WatchedRepo that was just added, and has never been analyzed or cached
+                return null;
+            }
 
             var readMatches = matches
                 .Select(async p =>
