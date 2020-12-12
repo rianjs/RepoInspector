@@ -42,36 +42,7 @@ namespace RepoMan.Records
         /// <summary>
         /// Comments associated with clicking the button in the approve/request changes workflow
         /// </summary>
-        public List<Comment> ReviewComments { get; set; } = new List<Comment>();
-        
-        /// <summary>
-        /// Comments on specific parts of the diff
-        /// </summary>
-        public List<Comment> DiffComments { get; set; } = new List<Comment>();
-        
-        /// <summary>
-        /// Comments on specific commits
-        /// </summary>
-        public List<Comment> CommitComments { get; set; } = new List<Comment>();
-        
-        /// <summary>
-        /// The comments associated with a line of code, or range of lines of code.
-        /// </summary>
-        /// <param name="prReviewComments"></param>
-        /// <returns></returns>
-        public void UpdateDiffComments(IEnumerable<Comment> prReviewComments)
-        {
-            DiffComments.AddRange(prReviewComments);
-        }
-        
-        /// <summary>
-        /// The comments associated with when someone clicks the Approve or Changes Requested button in the approval workflow 
-        /// </summary>
-        /// <returns></returns>
-        public void UpdateStateTransitionComments(IEnumerable<Comment> commentsForStateTransition)
-        {
-            ReviewComments.AddRange(commentsForStateTransition);
-        }
+        public List<Comment> Comments { get; set; } = new List<Comment>();
         
         /// <summary>
         /// The top-level comments on a pull request that are not associated with specific commits, lines of code, etc.
@@ -79,16 +50,15 @@ namespace RepoMan.Records
         /// <param name="generalPrComments"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public void UpdateDiscussionComments(IEnumerable<Comment> generalPrComments)
+        public void AppendComments(IEnumerable<Comment> generalPrComments)
         {
-            ReviewComments.AddRange(generalPrComments);
+            Comments.AddRange(generalPrComments);
         }
 
         /// <summary>
         /// Returns the Body of the Pull Request, along with all of the comments associated with it.
         /// </summary>
         [JsonIgnore]
-        public IEnumerable<Comment> FullCommentary
-            => ReviewComments.Prepend(BodyComment).Concat(DiffComments).Concat(CommitComments);
+        public IEnumerable<Comment> FullCommentary => Comments.Prepend(BodyComment);
     }
 }

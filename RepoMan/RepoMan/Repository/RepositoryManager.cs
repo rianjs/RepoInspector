@@ -256,10 +256,8 @@ namespace RepoMan.Repository
             try
             {
                 await _byNumberLock.WaitAsync();
-                var commitComments = _byNumber.SelectMany(pr => pr.Value.CommitComments);
-                var diffComments = _byNumber.SelectMany(pr => pr.Value.DiffComments);
-                var reviewComments = _byNumber.SelectMany(pr => pr.Value.ReviewComments);
-                return commitComments.Concat(diffComments).Concat(reviewComments).ToList();
+                var reviewComments = _byNumber.SelectMany(pr => pr.Value.Comments).ToList();
+                return reviewComments;
             }
             finally
             {

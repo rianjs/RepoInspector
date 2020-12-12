@@ -22,7 +22,7 @@ namespace RepoMan.Analysis.Scoring
 
         public override int Count(PullRequest prDetails)
         {
-            return prDetails.ReviewComments
+            return prDetails.Comments
                 .Where(rc => _approvalAnalyzer.IsApproved(rc))
                 .Select(rc => rc.User.Id)
                 .Distinct()
