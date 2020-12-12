@@ -17,14 +17,12 @@ namespace RepoMan.Analysis.Scoring
 
         public override int Count(PullRequest prDetails)
         {
-            var urlCount = prDetails.AllComments
+            var urlCount = prDetails.FullCommentary
                 .SelectMany(c => Extract(c.Text))
                 .Count();
 
             var titleCount = Extract(prDetails.Title).Count();
-            var bodyCount = Extract(prDetails.Body).Count();
-            
-            return urlCount + titleCount + bodyCount;
+            return urlCount + titleCount;
         }
 
         public override IEnumerable<string> Extract(string s)

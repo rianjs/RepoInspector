@@ -15,7 +15,7 @@ namespace RepoMan.Analysis.Scoring
         
         public override int Count(PullRequest prDetails)
         {
-            return prDetails.AllComments
+            return prDetails.FullCommentary
                 .Select(c => c.User.Id)
                 .Distinct()
                 .Count();

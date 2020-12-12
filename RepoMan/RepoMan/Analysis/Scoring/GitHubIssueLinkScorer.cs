@@ -16,14 +16,13 @@ namespace RepoMan.Analysis.Scoring
         
         public override int Count(PullRequest prDetails)
         {
-            var issueLinkCount = prDetails.AllComments
+            var issueLinkCount = prDetails.FullCommentary
                 .SelectMany(c => Extract(c.Text))
                 .Count();
 
             var titleCount = Extract(prDetails.Title).Count();
-            var bodyCount = Extract(prDetails.Body).Count();
 
-            return issueLinkCount + titleCount + bodyCount;
+            return issueLinkCount + titleCount;
         }
 
         /// <summary>

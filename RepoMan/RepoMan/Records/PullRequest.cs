@@ -13,6 +13,16 @@ namespace RepoMan.Records
         public string HtmlUrl { get; set; }
         public User Submitter { get; set; }
         public string Body { get; set; }
+        public Comment BodyComment => new Comment
+        {
+            CreatedAt = OpenedAt,
+            UpdatedAt = UpdatedAt,
+            HtmlUrl = HtmlUrl,
+            Id = Id,
+            Text = Body,
+            User = Submitter,
+        };
+        
         
         /// <summary>
         /// Open, closed, merged, etc.
@@ -74,8 +84,11 @@ namespace RepoMan.Records
             ReviewComments.AddRange(generalPrComments);
         }
 
+        /// <summary>
+        /// Returns the Body of the Pull Request, along with all of the comments associated with it.
+        /// </summary>
         [JsonIgnore]
-        public IEnumerable<Comment> AllComments
-            => ReviewComments.Concat(DiffComments).Concat(CommitComments);
+        public IEnumerable<Comment> FullCommentary
+            => ReviewComments.Prepend(BodyComment).Concat(DiffComments).Concat(CommitComments);
     }
 }
