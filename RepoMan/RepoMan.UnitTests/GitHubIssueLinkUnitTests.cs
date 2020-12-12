@@ -15,7 +15,7 @@ namespace RepoMan.UnitTests
         {
             var prDetails = new PullRequest
             {
-                CommitComments = new List<Comment>
+                Comments = new List<Comment>
                 {
                     new Comment { Text = s, }
                 },

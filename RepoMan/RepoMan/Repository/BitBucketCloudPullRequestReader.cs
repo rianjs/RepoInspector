@@ -153,7 +153,7 @@ namespace RepoMan.Repository
             var reviewComments = activities
                 .Select(ToComment)
                 .Where(c => c is object);
-            pullRequest.UpdateDiscussionComments(reviewComments);
+            pullRequest.AppendComments(reviewComments);
             return completed;
         }
 

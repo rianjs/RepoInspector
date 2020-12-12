@@ -18,14 +18,12 @@ namespace RepoMan.UnitTests
             const double expectedScore = 54d;
             var bigComment = new Comment
             {
-                // CreatedAt = _now,
-                // Id = 987654321,
                 Text = CodeBlockTests.FiveMatchesFromGitHub,
             };
             
             var prDetail = new PullRequest
             {
-                CommitComments = new List<Comment>{bigComment},
+                Comments = new List<Comment>{bigComment},
             };
             
             // Crazy github string has 5 code fences, and 2 code fragments = score of 54
@@ -35,18 +33,6 @@ namespace RepoMan.UnitTests
             var codeScore = fragmentScore.Points + fenceScore.Points;
             var shouldBeZero = expectedScore - codeScore;
             Assert.IsTrue(Math.Abs(shouldBeZero) < double.Epsilon);
-        }
-
-        private static PullRequest GetPullRequestDetails()
-        {
-            return new PullRequest
-            {
-                OpenedAt = _now,
-                ClosedAt = _now + TimeSpan.FromHours(1),
-                Id = 1233456789,
-                Number = 123,
-                CommitComments = new List<Comment>(),
-            };
         }
     }
 }

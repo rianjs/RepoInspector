@@ -89,13 +89,13 @@ namespace RepoMan.Repository
             }
 
             var diffReviewComments = diffReviewCommentsTask.Result.Select(c => c.FromPullRequestReviewComment());
-            pullRequest.UpdateDiffComments(diffReviewComments);
+            pullRequest.AppendComments(diffReviewComments);
 
             var generalPrComments = generalPrCommentsTask.Result.Select(c => c.FromIssueComment());
-            pullRequest.UpdateDiscussionComments(generalPrComments);
+            pullRequest.AppendComments(generalPrComments);
             
             var stateTransitionComments = approvalSummariesTask.Result.Select(c => c.FromPullRequestReviewSummary());
-            pullRequest.UpdateStateTransitionComments(stateTransitionComments);
+            pullRequest.AppendComments(stateTransitionComments);
 
             return true;
         }
