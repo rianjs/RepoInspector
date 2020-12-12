@@ -42,8 +42,8 @@ namespace RepoMan.UnitTests
                 .SetName("#123 returns 1");
             
             yield return new TestCaseData("#123 #123")
-                .Returns(1)
-                .SetName("#123 #123 returns 1");
+                .Returns(2)
+                .SetName("#123 #123 returns 2");
             
             yield return new TestCaseData("#123 #456")
                 .Returns(2)
