@@ -26,7 +26,7 @@ namespace RepoMan.Analysis.Scoring
 
         public IEnumerable<int> GetWordCounts(PullRequest prDetails)
         {
-            return prDetails.AllComments
+            return prDetails.FullCommentary
                 .Select(c => _wc.Count(c.Text))
                 .Concat(new[]
                 {

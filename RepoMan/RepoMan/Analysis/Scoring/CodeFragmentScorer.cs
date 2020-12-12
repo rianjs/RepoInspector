@@ -19,7 +19,7 @@ namespace RepoMan.Analysis.Scoring
 
         public override int Count(PullRequest prDetails)
         {
-            var codeFenceCount = prDetails.AllComments
+            var codeFenceCount = prDetails.FullCommentary
                 .SelectMany(c => Extract(c.Text))
                 .Count();
             

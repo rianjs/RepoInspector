@@ -17,7 +17,7 @@ namespace RepoMan.Analysis.Scoring
 
         public override int Count(PullRequest prDetails)
         {
-            var urlCount = prDetails.AllComments
+            var urlCount = prDetails.FullCommentary
                 .SelectMany(c => Extract(c.Text))
                 .Count();
 

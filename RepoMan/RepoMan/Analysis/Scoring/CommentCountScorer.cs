@@ -23,7 +23,7 @@ namespace RepoMan.Analysis.Scoring
         public override int Count(PullRequest prDetails)
         {
             var titleCount = _wc.Count(prDetails.Title);
-            var commentCount = prDetails.AllComments
+            var commentCount = prDetails.FullCommentary
                 .Select(c => _wc.Count(c.Text))
                 .Count();
 

@@ -84,8 +84,11 @@ namespace RepoMan.Records
             ReviewComments.AddRange(generalPrComments);
         }
 
+        /// <summary>
+        /// Returns the Body of the Pull Request, along with all of the comments associated with it.
+        /// </summary>
         [JsonIgnore]
-        public IEnumerable<Comment> AllComments
+        public IEnumerable<Comment> FullCommentary
             => ReviewComments.Prepend(BodyComment).Concat(DiffComments).Concat(CommitComments);
     }
 }
