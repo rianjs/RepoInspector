@@ -24,10 +24,8 @@ namespace RepoMan.Analysis.Scoring
             var codeFenceCount = prDetails.AllComments
                 .SelectMany(c => Extract(c.Text))
                 .Count();
-
-            var bodyCount = Extract(prDetails.Body).Count();
             
-            return codeFenceCount + bodyCount;
+            return codeFenceCount;
         }
 
         public override IEnumerable<string> Extract(string s) =>

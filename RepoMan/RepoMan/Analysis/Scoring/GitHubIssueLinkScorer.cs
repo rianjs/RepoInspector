@@ -21,9 +21,8 @@ namespace RepoMan.Analysis.Scoring
                 .Count();
 
             var titleCount = Extract(prDetails.Title).Count();
-            var bodyCount = Extract(prDetails.Body).Count();
 
-            return issueLinkCount + titleCount + bodyCount;
+            return issueLinkCount + titleCount;
         }
 
         /// <summary>

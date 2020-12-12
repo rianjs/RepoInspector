@@ -22,9 +22,7 @@ namespace RepoMan.Analysis.Scoring
                 .Count();
 
             var titleCount = Extract(prDetails.Title).Count();
-            var bodyCount = Extract(prDetails.Body).Count();
-            
-            return urlCount + titleCount + bodyCount;
+            return urlCount + titleCount;
         }
 
         public override IEnumerable<string> Extract(string s)
