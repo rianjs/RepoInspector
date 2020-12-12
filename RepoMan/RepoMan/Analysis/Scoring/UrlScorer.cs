@@ -19,12 +19,12 @@ namespace RepoMan.Analysis.Scoring
         {
             var urlCount = prDetails.AllComments
                 .SelectMany(c => Extract(c.Text))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Count();
 
+            var titleCount = Extract(prDetails.Title).Count();
             var bodyCount = Extract(prDetails.Body).Count();
             
-            return urlCount + bodyCount;
+            return urlCount + titleCount + bodyCount;
         }
 
         public override IEnumerable<string> Extract(string s)

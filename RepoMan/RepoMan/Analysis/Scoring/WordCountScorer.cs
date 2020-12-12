@@ -28,7 +28,11 @@ namespace RepoMan.Analysis.Scoring
         {
             return prDetails.AllComments
                 .Select(c => _wc.Count(c.Text))
-                .Concat(new[]{_wc.Count(prDetails.Body)});
+                .Concat(new[]
+                {
+                    _wc.Count(prDetails.Title),
+                    _wc.Count(prDetails.Body)   
+                });
         }
     }
 }

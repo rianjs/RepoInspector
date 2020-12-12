@@ -18,12 +18,12 @@ namespace RepoMan.Analysis.Scoring
         {
             var issueLinkCount = prDetails.AllComments
                 .SelectMany(c => Extract(c.Text))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Count();
 
+            var titleCount = Extract(prDetails.Title).Count();
             var bodyCount = Extract(prDetails.Body).Count();
 
-            return issueLinkCount + bodyCount;
+            return issueLinkCount + titleCount + bodyCount;
         }
 
         /// <summary>

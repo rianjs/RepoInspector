@@ -23,7 +23,6 @@ namespace RepoMan.Analysis.Scoring
         {
             var codeFenceCount = prDetails.AllComments
                 .SelectMany(c => Extract(c.Text))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Count();
 
             var bodyCount = Extract(prDetails.Body).Count();
