@@ -12,8 +12,6 @@ namespace RepoMan.Records
         public long Id { get; set; }
         public string HtmlUrl { get; set; }
         public User Submitter { get; set; }
-
-        public string Title { get; set; }
         public string Body { get; set; }
         
         /// <summary>

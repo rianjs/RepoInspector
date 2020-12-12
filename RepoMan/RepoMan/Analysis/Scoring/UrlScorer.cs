@@ -19,7 +19,6 @@ namespace RepoMan.Analysis.Scoring
         {
             var urlCount = prDetails.AllComments
                 .SelectMany(c => Extract(c.Text))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Count();
 
             var titleCount = Extract(prDetails.Title).Count();
