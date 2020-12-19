@@ -4,10 +4,10 @@ namespace RepoMan.Repository
     {
         GitHub,
         GitHubEnterprise,
+        BitBucketCloud,
         /// <summary>
         /// NOT SUPPORTED YET
         /// </summary>
-        BitBucketCloud,
         BitBucketServer,
     }
 }
