@@ -13,7 +13,6 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
-using Octokit;
 using RepoMan.Analysis;
 using RepoMan.Analysis.ApprovalAnalyzers;
 using RepoMan.Analysis.Normalization;
@@ -27,11 +26,8 @@ namespace RepoMan
 {
     class Program
     {
-        private static readonly string _tokenPath = Path.Combine(GetScratchDirectory(), "repoman-pan.secret");
         private static readonly string _configPath = Path.Combine(GetScratchDirectory(), "repoman-config.json");
         private static readonly string _scratchDir = GetScratchDirectory();
-        private static readonly string _url = "https://github.com";
-        private static readonly string _token = File.ReadAllText(_tokenPath).Trim();
         private static readonly ILogger _logger = GetLogger();
         private static readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
@@ -52,8 +48,8 @@ namespace RepoMan
             var serviceCollection = new ServiceCollection()
                 .Configure<PullRequestConstants>(RepositoryKind.GitHub.ToString(),
                     configuration.GetSection("PRConstants:GitHub"))
-                .Configure<PullRequestConstants>(RepositoryKind.BitBucket.ToString(),
-                    configuration.GetSection("PRConstants:BitBucket"))
+                .Configure<PullRequestConstants>(RepositoryKind.BitBucketCloud.ToString(),
+                    configuration.GetSection("PRConstants:BitBucketCloud"))
                 .AddTransient(sp =>
                 {
                     var prConstantsAccessor = sp.GetRequiredService<IOptionsSnapshot<PullRequestConstants>>();
@@ -65,7 +61,7 @@ namespace RepoMan
                 }).AddTransient(sp =>
                 {
                     var prConstantsAccessor = sp.GetRequiredService<IOptionsSnapshot<PullRequestConstants>>();
-                    var prConstants = prConstantsAccessor.Get(RepositoryKind.BitBucket.ToString());
+                    var prConstants = prConstantsAccessor.Get(RepositoryKind.BitBucketServer.ToString());
                     return new BitBucketApprovalAnalyzer(
                         prConstants.ExplicitApprovals,
                         prConstants.ExplicitNonApprovals,
@@ -76,7 +72,7 @@ namespace RepoMan
                 .AddSingleton<IClock, Clock>()
                 .AddSingleton(sp => _logger)
                 .AddSingleton<IWordCounter, WordCounter>()
-                .AddSingleton<HtmlCommentStripper>()
+                .AddSingleton<INormalizer, HtmlCommentStripper>()
                 .AddSingleton(sp => GetKnownScorers(
                     approvalAnalyzer: sp.GetRequiredService<GitHubApprovalAnalyzer>(),
                     wc: sp.GetRequiredService<IWordCounter>()))
@@ -106,39 +102,36 @@ namespace RepoMan
                 .AddSingleton<Scorer>(sp => sp.GetRequiredService<CommentCountScorer>())
                 .AddSingleton<Scorer>(sp => sp.GetRequiredService<UniqueCommenterScorer>())
                 .AddSingleton<Scorer>(sp => sp.GetRequiredService<WordCountScorer>())
-                // Roll it all up into the orchestrators...
+                // Roll it all up into the orchestrators and factories...
                 .AddSingleton<IPullRequestAnalyzer>(sp => new PullRequestAnalyzer(sp.GetServices<Scorer>()))
-                .AddSingleton<IRepositoryAnalyzer>(sp => new RepositoryAnalyzer(sp.GetRequiredService<IClock>()));
-
+                .AddSingleton<IRepositoryAnalyzer>(sp => new RepositoryAnalyzer(sp.GetRequiredService<IClock>()))
+                .AddSingleton(sp => new GitHubPullRequestReaderFactory("repoman-health-metrics", sp.GetRequiredService<INormalizer>()))
+                .AddSingleton(sp => new BitBucketCloudPullRequestReaderFactory(
+                    sp.GetRequiredService<IClock>(),
+                    sp.GetRequiredService<JsonSerializerSettings>(),
+                    httpConnectionLifespan: TimeSpan.FromSeconds(120), 
+                    sp.GetRequiredService<ILogger>()))
+                .AddSingleton<IPullRequestReaderFactory, PullRequestReaderFactory>(sp => new PullRequestReaderFactory(
+                    sp.GetRequiredService<GitHubPullRequestReaderFactory>(),
+                    sp.GetRequiredService<BitBucketCloudPullRequestReaderFactory>(),
+                    sp.GetRequiredService<ILogger>()))
+                .AddSingleton<IRepoManagerFactory>(sp => new RepoManagerFactory(
+                    sp.GetRequiredService<IPullRequestReaderFactory>(),
+                    sp.GetRequiredService<IPullRequestCacheManager>(),
+                    dosBuffer,
+                    sp.GetRequiredService<ILogger>()));
+            
             var serviceProvider = serviceCollection.BuildServiceProvider();
             
-            var watchedRepos = GetWatchedRepositories()
-                .GroupBy(r => r.ApiToken);
-            
-            // TODO: Implement an UpgradeAsync method that can do one-time data transformations/updates on cached data
+            // FUTURE: Consider implementing an UpgradeAsync method that can do one-time data transformations/updates on cached data
 
-            var repoMgrInitializationQuery =
-                from kvp in watchedRepos
-                from repo in kvp
-                let client = GetClient(repo.BaseUrl, kvp.Key)
-                let prReader = new GitHubRepoPullRequestReader(
-                    repo.Owner,
-                    repo.RepositoryName,
-                    client,
-                    serviceProvider.GetRequiredService<HtmlCommentStripper>())
-                select RepositoryManager.InitializeAsync(
-                    repo.Owner,
-                    repo.RepositoryName,
-                    repo.BaseUrl,
-                    prReader,
-                    serviceProvider.GetRequiredService<IPullRequestCacheManager>(),
-                    dosBuffer,
-                    refreshFromUpstream: true,
-                    _logger);
-            var watcherInitializationTasks = repoMgrInitializationQuery.ToList();
-            await Task.WhenAll(watcherInitializationTasks);
-            
-            var repoWorkerInitialization = watcherInitializationTasks
+            var repos = configuration.GetSection("WatchedRepositories").Get<List<WatchedRepository>>();
+            var repoManagers = repos
+                .Select(r => serviceProvider.GetRequiredService<IRepoManagerFactory>().GetManagerAsync(r, refreshFromUpstream: false))
+                .ToList();
+            await Task.WhenAll(repoManagers);
+
+            var repoWorkerInitialization = repoManagers
                 .Select(t => t.Result)
                 .Select(async repoManager => await RepoWorker.InitializeAsync(
                     repoManager,
@@ -146,7 +139,7 @@ namespace RepoMan
                     serviceProvider.GetRequiredService<IRepositoryAnalyzer>(),
                     serviceProvider.GetRequiredService<IAnalysisManager>(),
                     serviceProvider.GetRequiredService<IClock>(),
-                    _logger))
+                    serviceProvider.GetRequiredService<ILogger>()))
                 .ToList();
             await Task.WhenAll(repoWorkerInitialization);
             
@@ -156,21 +149,6 @@ namespace RepoMan
                 .Select(l => l.LoopAsync())
                 .ToList();
             await Task.WhenAll(loopServices);
-        }
-
-        /// <summary>
-        /// Clients are intended to be reused for each top-level URL. So you can re-use a github.com pull request reader for every repo at github.com.  
-        /// </summary>
-        /// <param name="repoUrl"></param>
-        /// <param name="token"></param>
-        /// <returns></returns>
-        private static GitHubClient GetClient(string repoUrl, string token)
-        {
-            var github = new Uri(repoUrl);
-            var client = new GitHubClient(new ProductHeaderValue("repoman-health-metrics"), github);
-            var auth = new Credentials(token);
-            client.Credentials = auth;
-            return client;
         }
 
         private static string GetScratchDirectory()
@@ -194,46 +172,41 @@ namespace RepoMan
                 .CreateLogger();
         }
 
+        private static JsonSerializerSettings GetJsonSerializerSettings(IScorerFactory scorerFactory)
+        {
+            #if DEBUG
+            return GetDebugJsonSerializerSettings(scorerFactory);
+            #endif
+            
+            return GetProdJsonSerializerSettings(scorerFactory);
+        }
+
         private static JsonSerializerSettings GetDebugJsonSerializerSettings(IScorerFactory scorerFactory)
         {
             return new JsonSerializerSettings
             {
                 ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                //For demo purposes:
                 DefaultValueHandling = DefaultValueHandling.Include,
+                NullValueHandling = NullValueHandling.Include,
                 Formatting = Formatting.Indented,
-                //Otherwise:
-                // DefaultValueHandling = DefaultValueHandling.Ignore,
                 DateFormatHandling = DateFormatHandling.IsoDateFormat,
                 Converters = new List<JsonConverter> { new StringEnumConverter(), new TruncatingDoubleConverter(), new ScorerConverter(scorerFactory) },
             };
         }
 
-        private static List<WatchedRepository> GetWatchedRepositories()
+        private static JsonSerializerSettings GetProdJsonSerializerSettings(IScorerFactory scorerFactory)
         {
-            return new List<WatchedRepository>
+            return new JsonSerializerSettings
             {
-                new WatchedRepository
-                {
-                    Owner = "alex",
-                    RepositoryName = "nyt-2020-election-scraper",
-                    Description = "NYT election data scraper and renderer",
-                    ApiToken = _token,
-                    BaseUrl = "https://github.com",
-                    RepositoryKind = RepositoryKind.GitHub,
-                },
-                new WatchedRepository
-                {
-                    Owner = "rianjs",
-                    RepositoryName = "ical.net",
-                    Description = "RFC-5545 ical data library",
-                    ApiToken = _token,
-                    BaseUrl = "https://github.com",
-                    RepositoryKind = RepositoryKind.GitHub,
-                },
+                ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                Formatting = Formatting.None,
+                DefaultValueHandling = DefaultValueHandling.Ignore,
+                NullValueHandling = NullValueHandling.Ignore,
+                DateFormatHandling = DateFormatHandling.IsoDateFormat,
+                Converters = new List<JsonConverter> { new StringEnumConverter(), new TruncatingDoubleConverter(), new ScorerConverter(scorerFactory) },
             };
         }
-        
+
         private static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
             e.Cancel = true;
