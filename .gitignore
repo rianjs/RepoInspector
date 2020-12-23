@@ -1,3 +1,6 @@
+# macOS
+.DS_Store
+
 # Serialized data files to mess with
 scratch/
 *.secret
