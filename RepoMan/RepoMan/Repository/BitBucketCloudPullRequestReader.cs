@@ -33,7 +33,8 @@ namespace RepoMan.Repository
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _bbClient = client ?? throw new ArgumentNullException(nameof(client));
 
-            var fullUrl = new Uri(uriHost, "!api/2.0");
+            var authority = new Uri(uriHost.GetLeftPart(UriPartial.Authority), UriKind.Absolute);
+            var fullUrl = new Uri(authority, "!api/2.0");
             _prApiUrl = $"{fullUrl}/repositories/{repoOwner}/{repoName}/pullrequests";
         }
 
