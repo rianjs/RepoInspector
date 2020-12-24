@@ -30,8 +30,9 @@ namespace RepoMan.Repository
             {
                 return existingClient;
             }
-            
-            var github = new Uri(repo.Url);
+
+            var authority = new Uri(repo.Url).GetLeftPart(UriPartial.Authority);
+            var github = new Uri(authority, UriKind.Absolute);
             var client = new GitHubClient(new ProductHeaderValue(_productHeaderValue), github);
             var auth = new Credentials(repo.ApiToken);
             client.Credentials = auth;
