@@ -6,7 +6,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using Newtonsoft.Json;
 using RepoMan.Records;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace RepoMan.Repository
 {

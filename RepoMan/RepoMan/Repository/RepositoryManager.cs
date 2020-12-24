@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using RepoMan.IO;
 using RepoMan.Records;
-using Serilog;
+using Microsoft.Extensions.Logging;
 using PullRequest = RepoMan.Records.PullRequest;
 
 namespace RepoMan.Repository
@@ -104,22 +104,22 @@ namespace RepoMan.Repository
 
             var fullName = $"{repoOwner}:{repoName}";
             
-            logger.Information($"{fullName} initializing the repository manager");
+            logger.LogInformation($"{fullName} initializing the repository manager");
             var timer = Stopwatch.StartNew();
 
             IList<PullRequest> prs = new List<PullRequest>();
             try
             {
-                logger.Information($"{fullName} reading the cache");
+                logger.LogInformation($"{fullName} reading the cache");
                 prs = await cacheManager.LoadAsync(repoOwner, repoName);
             }
             catch (Exception)
             {
-                logger.Information($"{fullName} cache file does not exist, therefore one will be created.");
+                logger.LogInformation($"{fullName} cache file does not exist, therefore one will be created.");
             }
             var byNumber = prs.ToDictionary(pr => pr.Number);
             timer.Stop();
-            logger.Information($"{fullName} initialized the cache with {byNumber.Count:N0} pull requests in {timer.ElapsedMilliseconds:N0}ms");
+            logger.LogInformation($"{fullName} initialized the cache with {byNumber.Count:N0} pull requests in {timer.ElapsedMilliseconds:N0}ms");
             
             var repoHistoryMgr = new RepositoryManager(repoOwner, repoName, repoUrl, fullName, prReader, cacheManager, prApiDosBuffer, byNumber, logger);
 
@@ -212,23 +212,23 @@ namespace RepoMan.Repository
         /// <returns>The collection of fully-updated pull requests</returns>
         private async ValueTask<List<PullRequest>> PopulateCommentsAndApprovalsAsync(List<PullRequest> unfinishedPrs)
         {
-            _logger.Information($"{_fullName} has {unfinishedPrs.Count:N0} pull requests with incomplete data to be populated");
+            _logger.LogInformation($"{_fullName} has {unfinishedPrs.Count:N0} pull requests with incomplete data to be populated");
             var successfullyUpdatePrs = new List<PullRequest>(unfinishedPrs.Count);
             
             // This is intentionally done serially with a delay instead of going as fast as possible
             foreach (var pr in unfinishedPrs)
             {
-                _logger.Information($"Updating {_fullName} pull request #{pr.Number}");
+                _logger.LogInformation($"Updating {_fullName} pull request #{pr.Number}");
                 var loopTimer = Stopwatch.StartNew();
                 var succeeded = await _prReader.TryFillCommentGraphAsync(pr);
                 loopTimer.Stop();
                 
                 if (!succeeded)
                 {
-                    _logger.Information($"{_fullName} pull request #{pr.Number} update failed in {loopTimer.ElapsedMilliseconds:N0} ms");
+                    _logger.LogInformation($"{_fullName} pull request #{pr.Number} update failed in {loopTimer.ElapsedMilliseconds:N0} ms");
                     break;
                 }
-                _logger.Information($"{_fullName} pull request #{pr.Number} update succeeded in {loopTimer.ElapsedMilliseconds:N0} ms");
+                _logger.LogInformation($"{_fullName} pull request #{pr.Number} update succeeded in {loopTimer.ElapsedMilliseconds:N0} ms");
                 
                 successfullyUpdatePrs.Add(pr);
 

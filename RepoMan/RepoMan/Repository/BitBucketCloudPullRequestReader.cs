@@ -7,7 +7,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using RepoMan.Records;
-using ILogger = Serilog.ILogger;
+using Microsoft.Extensions.Logging;
 
 namespace RepoMan.Repository
 {
@@ -49,31 +49,31 @@ namespace RepoMan.Repository
             
             // Get the first page: https://bitbucket.org/!api/2.0/repositories/{repoOwner}/{repoName}/pullrequests
             // Follow `next` until it's null
-            _logger.Information($"Pulling first page of {_repoTag}");
+            _logger.LogInformation($"Pulling first page of {_repoTag}");
             var timer = Stopwatch.StartNew();
             var page = await GetBitbucketPullRequests(url);
             var aggregatePrs = new List<BitbucketPullRequest>(page.PullRequests);
 
             if (!string.IsNullOrWhiteSpace(page.next))
             {
-                _logger.Information($"Approximately {page.size:N0} pull requests to fetch in pages of size {page.pagelen:N0}");
+                _logger.LogInformation($"Approximately {page.size:N0} pull requests to fetch in pages of size {page.pagelen:N0}");
                 var requestsToMake = page.size / (float) page.pagelen;
                 var approxPages = Convert.ToInt32(Math.Ceiling(requestsToMake));
                 var counter = 0;
                 var next = page.next;
                 while (!string.IsNullOrWhiteSpace(next))
                 {
-                    _logger.Information($"{_repoTag} - pulling page {++counter:N0} / ~{approxPages:N0}");
+                    _logger.LogInformation($"{_repoTag} - pulling page {++counter:N0} / ~{approxPages:N0}");
                     var pageTimer = Stopwatch.StartNew();
                     var nextPage = await GetBitbucketPullRequests(next);
                     pageTimer.Stop();
                     next = nextPage.next;
                     aggregatePrs.AddRange(nextPage.PullRequests);
-                    _logger.Information($"{_repoTag} - page {counter:N0} / {approxPages:N0} pulled in ~{pageTimer.ElapsedMilliseconds:N0}ms");
+                    _logger.LogInformation($"{_repoTag} - page {counter:N0} / {approxPages:N0} pulled in ~{pageTimer.ElapsedMilliseconds:N0}ms");
                 }
             }
             timer.Stop();
-            _logger.Information($"{aggregatePrs.Count:N0} discovered in {timer.ElapsedMilliseconds:N0}ms");
+            _logger.LogInformation($"{aggregatePrs.Count:N0} discovered in {timer.ElapsedMilliseconds:N0}ms");
 
             var pullRequests = aggregatePrs
                 .Select(bbPr => bbPr.ToPullRequest())
@@ -111,7 +111,7 @@ namespace RepoMan.Repository
             }
             catch (Exception e)
             {
-                _logger.Error($"Unable to get activities list: ' {url} '", e);
+                _logger.LogError($"Unable to get activities list: ' {url} '", e);
                 return false;
             }
 
@@ -121,14 +121,14 @@ namespace RepoMan.Repository
             }
             
             var completed = true;
-            _logger.Information($"Approximately {page.size:N0} pull requests to fetch in pages of size {page.pagelen:N0}");
+            _logger.LogInformation($"Approximately {page.size:N0} pull requests to fetch in pages of size {page.pagelen:N0}");
             var requestsToMake = page.size / (float) page.pagelen;
             var approxPages = Convert.ToInt32(Math.Ceiling(requestsToMake));
             var counter = 0;
             var next = page.next;
             while (!string.IsNullOrWhiteSpace(next))
             {
-                _logger.Information($"{_repoTag} - pulling page {++counter:N0} / ~{approxPages:N0}");
+                _logger.LogInformation($"{_repoTag} - pulling page {++counter:N0} / ~{approxPages:N0}");
                 var pageTimer = Stopwatch.StartNew();
                 PullRequestActivityList nextPage = null;
                 try
@@ -137,8 +137,8 @@ namespace RepoMan.Repository
                 }
                 catch (Exception e)
                 {
-                    _logger.Error($"Unable to get activities list: ' {url} '", e);
-                    _logger.Information($"{_repoTag} - stopping pull request query activity for parent ' {url} '");
+                    _logger.LogError($"Unable to get activities list: ' {url} '", e);
+                    _logger.LogInformation($"{_repoTag} - stopping pull request query activity for parent ' {url} '");
                     completed = false;
                     break;
                 }
@@ -146,11 +146,11 @@ namespace RepoMan.Repository
                 pageTimer.Stop();
                 next = nextPage.next;
                 activities.AddRange(nextPage.Activities);
-                _logger.Information($"{_repoTag} - page {counter:N0} / {approxPages:N0} pulled in ~{pageTimer.ElapsedMilliseconds:N0}ms");
+                _logger.LogInformation($"{_repoTag} - page {counter:N0} / {approxPages:N0} pulled in ~{pageTimer.ElapsedMilliseconds:N0}ms");
             }
 
             timer.Stop();
-            _logger.Information($"{activities.Count:N0} discovered in {timer.ElapsedMilliseconds:N0}ms");
+            _logger.LogInformation($"{activities.Count:N0} discovered in {timer.ElapsedMilliseconds:N0}ms");
 
             var reviewComments = activities
                 .Select(ToComment)

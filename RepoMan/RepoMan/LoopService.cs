@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace RepoMan
 {
@@ -30,7 +30,7 @@ namespace RepoMan
         {
             while (!_cts.IsCancellationRequested)
             {
-                _logger.Information($"{_worker.Name} - starting work loop");
+                _logger.LogInformation($"{_worker.Name} - starting work loop");
                 var timer = Stopwatch.StartNew();
 
                 try
@@ -39,11 +39,11 @@ namespace RepoMan
                 }
                 catch (Exception e)
                 {
-                    _logger.Error(e, $"{_worker.Name} - work loop threw an exception");
+                    _logger.LogError(e, $"{_worker.Name} - work loop threw an exception");
                 }
             
                 timer.Stop();
-                _logger.Information($"{_worker.Name} - finished work loop");
+                _logger.LogInformation($"{_worker.Name} - finished work loop");
 
                 var toWait = GetSleepDelay(_loopDelay, timer.Elapsed);
                 await Task.Delay(toWait, _cts.Token);
