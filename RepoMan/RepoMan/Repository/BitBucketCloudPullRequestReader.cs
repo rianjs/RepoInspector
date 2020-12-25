@@ -69,7 +69,7 @@ namespace RepoMan.Repository
                     pageTimer.Stop();
                     next = nextPage.next;
                     aggregatePrs.AddRange(nextPage.PullRequests);
-                    _logger.LogInformation($"{_repoTag} - page {counter:N0} / {approxPages:N0} pulled in ~{pageTimer.ElapsedMilliseconds:N0}ms");
+                    _logger.LogInformation($"{_repoTag} - page {counter:N0} / ~{approxPages:N0} pulled in {pageTimer.ElapsedMilliseconds:N0}ms");
                 }
             }
             timer.Stop();
@@ -146,7 +146,7 @@ namespace RepoMan.Repository
                 pageTimer.Stop();
                 next = nextPage.next;
                 activities.AddRange(nextPage.Activities);
-                _logger.LogInformation($"{_repoTag} - page {counter:N0} / {approxPages:N0} pulled in ~{pageTimer.ElapsedMilliseconds:N0}ms");
+                _logger.LogInformation($"{_repoTag} - page {counter:N0} / ~{approxPages:N0} pulled in {pageTimer.ElapsedMilliseconds:N0}ms");
             }
 
             timer.Stop();

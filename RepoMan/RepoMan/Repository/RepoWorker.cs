@@ -150,6 +150,11 @@ namespace RepoMan.Repository
             var timer = Stopwatch.StartNew();
             
             var newPrs = await _repoManager.RefreshFromUpstreamAsync(ItemState.Closed);
+            if (!newPrs.Any())
+            {
+                _logger.LogInformation($"{Name} has no pull requests analyze.");
+                return;
+            }
 
             _logger.LogInformation($"{Name} comment analysis starting for {newPrs.Count:N0} pull requests");
             var analysisTimer = Stopwatch.StartNew();
