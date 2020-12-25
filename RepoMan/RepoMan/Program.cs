@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -20,7 +21,6 @@ using RepoMan.Analysis.Scoring;
 using RepoMan.IO;
 using RepoMan.Records;
 using RepoMan.Repository;
-using Serilog;
 
 namespace RepoMan
 {
@@ -28,7 +28,7 @@ namespace RepoMan
     {
         private static readonly string _configPath = Path.Combine(GetScratchDirectory(), "repoman-config.json");
         private static readonly string _scratchDir = GetScratchDirectory();
-        private static readonly ILogger _logger = GetLogger();
+        private static readonly ILogger _logger = GetLogger<Program>();
         private static readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         static async Task Main(string[] args)
@@ -70,7 +70,6 @@ namespace RepoMan
                 // Reusable building blocks
                 .AddSingleton<IFilesystem>(sp => new Filesystem())
                 .AddSingleton<IClock, Clock>()
-                .AddSingleton(sp => _logger)
                 .AddSingleton<IWordCounter, WordCounter>()
                 .AddSingleton<INormalizer, HtmlCommentStripper>()
                 .AddSingleton(sp => GetKnownScorers(
@@ -109,17 +108,17 @@ namespace RepoMan
                 .AddSingleton(sp => new BitBucketCloudPullRequestReaderFactory(
                     sp.GetRequiredService<IClock>(),
                     sp.GetRequiredService<JsonSerializerSettings>(),
-                    httpConnectionLifespan: TimeSpan.FromSeconds(120), 
-                    sp.GetRequiredService<ILogger>()))
+                    httpConnectionLifespan: TimeSpan.FromSeconds(120),
+                    GetLogger<BitBucketCloudPullRequestReaderFactory>()))
                 .AddSingleton<IPullRequestReaderFactory, PullRequestReaderFactory>(sp => new PullRequestReaderFactory(
                     sp.GetRequiredService<GitHubPullRequestReaderFactory>(),
                     sp.GetRequiredService<BitBucketCloudPullRequestReaderFactory>(),
-                    sp.GetRequiredService<ILogger>()))
+                    GetLogger<PullRequestReaderFactory>()))
                 .AddSingleton<IRepoManagerFactory>(sp => new RepoManagerFactory(
                     sp.GetRequiredService<IPullRequestReaderFactory>(),
                     sp.GetRequiredService<IPullRequestCacheManager>(),
                     dosBuffer,
-                    sp.GetRequiredService<ILogger>()));
+                    GetLogger<RepoManagerFactory>()));
             
             var serviceProvider = serviceCollection.BuildServiceProvider();
             
@@ -139,7 +138,7 @@ namespace RepoMan
                     serviceProvider.GetRequiredService<IRepositoryAnalyzer>(),
                     serviceProvider.GetRequiredService<IAnalysisManager>(),
                     serviceProvider.GetRequiredService<IClock>(),
-                    serviceProvider.GetRequiredService<ILogger>()))
+                    GetLogger<RepoWorker>()))
                 .ToList();
             await Task.WhenAll(repoWorkerInitialization);
             
@@ -165,11 +164,19 @@ namespace RepoMan
             return Path.Combine(path, "scratch");
         }
         
-        private static ILogger GetLogger()
+        private static ILogger<T> GetLogger<T>()
         {
-            return new LoggerConfiguration()
-                .WriteTo.Console()
-                .CreateLogger();
+            using var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder
+                    .AddFilter("Microsoft", LogLevel.Warning)
+                    .AddFilter("System", LogLevel.Warning)
+                    .AddFilter("LoggingConsoleApp.Program", LogLevel.Debug)
+                    .AddConsole();
+            });
+
+            var logger = loggerFactory.CreateLogger<T>();
+            return logger;
         }
 
         private static JsonSerializerSettings GetJsonSerializerSettings(IScorerFactory scorerFactory)
@@ -218,13 +225,13 @@ namespace RepoMan
 
         private static void HandleShutdown()
         {
-            _logger.Information("SIGTERM received. Shutting down");
+            _logger.LogInformation("SIGTERM received. Shutting down");
             
             var stopwatch = Stopwatch.StartNew();
             _cts.Cancel();
             stopwatch.Stop();
 
-            _logger.Information($"Daemon stopped in {stopwatch.ElapsedMilliseconds:N0}ms");
+            _logger.LogInformation($"Daemon stopped in {stopwatch.ElapsedMilliseconds:N0}ms");
         }
         
         private static IScorerFactory GetKnownScorers(IApprovalAnalyzer approvalAnalyzer, IWordCounter wc)

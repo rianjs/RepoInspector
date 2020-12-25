@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using RepoMan.IO;
 using RepoMan.Records;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace RepoMan.Repository
 {

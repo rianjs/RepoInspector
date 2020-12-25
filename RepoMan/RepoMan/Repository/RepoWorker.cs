@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using RepoMan.Analysis;
 using RepoMan.IO;
 using RepoMan.Records;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace RepoMan.Repository
 {
@@ -146,20 +146,20 @@ namespace RepoMan.Repository
         public async Task ExecuteAsync()
         {
             var now = _clock.DateTimeOffsetUtcNow();
-            _logger.Information($"{Name} work loop starting");
+            _logger.LogInformation($"{Name} work loop starting");
             var timer = Stopwatch.StartNew();
             
             var newPrs = await _repoManager.RefreshFromUpstreamAsync(ItemState.Closed);
 
-            _logger.Information($"{Name} comment analysis starting for {newPrs.Count:N0} pull requests");
+            _logger.LogInformation($"{Name} comment analysis starting for {newPrs.Count:N0} pull requests");
             var analysisTimer = Stopwatch.StartNew();
             var prAnalysis = newPrs
                 .Select(pr => _prAnalyzer.CalculatePullRequestMetrics(pr))
                 .ToList();
             analysisTimer.Stop();
-            _logger.Information($"{Name} comment analysis completed for {newPrs.Count:N0} pull requests in {analysisTimer.Elapsed.ToMicroseconds():N0} microseconds");
+            _logger.LogInformation($"{Name} comment analysis completed for {newPrs.Count:N0} pull requests in {analysisTimer.Elapsed.ToMicroseconds():N0} microseconds");
             
-            _logger.Information($"{Name} repository analysis starting for {newPrs.Count:N0} pull requests");
+            _logger.LogInformation($"{Name} repository analysis starting for {newPrs.Count:N0} pull requests");
             analysisTimer = Stopwatch.StartNew();
 
             var repoAnalysis = _repoAnalyzer.CalculateRepositoryMetrics(prAnalysis);
@@ -171,12 +171,12 @@ namespace RepoMan.Repository
             repoAnalysis.Scorers = _prAnalyzer.Scorers.ToHashSet();
             
             analysisTimer.Stop();
-            _logger.Information($"{Name} repository analysis completed for {newPrs.Count:N0} pull requests in {analysisTimer.Elapsed.ToMicroseconds():N0} microseconds");
+            _logger.LogInformation($"{Name} repository analysis completed for {newPrs.Count:N0} pull requests in {analysisTimer.Elapsed.ToMicroseconds():N0} microseconds");
 
             await _analysisManager.SaveAsync(repoAnalysis);
 
             timer.Stop();
-            _logger.Information($"{Name} work loop completed in {timer.ElapsedMilliseconds:N0}ms");
+            _logger.LogInformation($"{Name} work loop completed in {timer.ElapsedMilliseconds:N0}ms");
         }
     }
 }

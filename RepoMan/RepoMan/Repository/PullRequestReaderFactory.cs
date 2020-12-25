@@ -1,6 +1,6 @@
 using System;
 using RepoMan.Records;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace RepoMan.Repository
 {
