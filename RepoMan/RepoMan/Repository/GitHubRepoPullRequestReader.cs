@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Octokit;
 using RepoMan.Analysis.Normalization;
-using RepoMan.Records;
 using PullRequest = RepoMan.Records.PullRequest;
 using User = RepoMan.Records.User;
 using OctokitPullRequest = Octokit.PullRequest;
