@@ -68,7 +68,7 @@ namespace RepoMan.Repository
                 .ToDictionary(pr => pr.Number);
             
             var previousMetrics = (await analysisManager.LoadHistoryAsync(repoManager.RepoOwner, repoManager.RepoName))
-                ?? new List<RepositoryMetrics>();
+                ?? new List<MetricSnapshot>();
 
             var previousPullRequestMetricsByNumber = previousMetrics
                 .SelectMany(m => m.PullRequestMetrics.Values)
@@ -94,9 +94,11 @@ namespace RepoMan.Repository
             }
             
             // 1b) Recompute those metrics
-            var toBeSaved = new List<RepositoryMetrics>();
+            var toBeSaved = new List<MetricSnapshot>();
             if (previouslyComputedButHasChanged.Any())
             {
+                var now = clock.DateTimeOffsetUtcNow();
+
                 foreach (var originalMetric in previouslyComputedButHasChanged)
                 {
                     var prMetrics = originalMetric.PullRequestMetrics
@@ -104,42 +106,47 @@ namespace RepoMan.Repository
                         .Select(nbr => cachedPullRequestByNumber[nbr])
                         .Select(prAnalyzer.CalculatePullRequestMetrics)
                         .ToList();
-                    var replacement = repoAnalyzer.CalculateRepositoryMetrics(prMetrics);
-                    replacement.CreatedAt = originalMetric.CreatedAt;
-                    replacement.UpdatedAt = clock.DateTimeOffsetUtcNow();
-                    replacement.Scorers = prAnalyzer.Scorers.ToHashSet();
-                    replacement.Owner = repoManager.RepoOwner;
-                    replacement.Name = repoManager.RepoName;
-                    replacement.Url = repoManager.RepoUrl;
-                    toBeSaved.Add(replacement);
+                    var replacements = repoAnalyzer.CalculateRepositoryMetricsOverTime(prMetrics);
+                    
+                    foreach (var replacement in replacements)
+                    {
+                        replacement.CreatedAt = originalMetric.CreatedAt;
+                        replacement.UpdatedAt = now;
+                        replacement.Scorers = prAnalyzer.Scorers.ToHashSet();
+                        replacement.Owner = repoManager.RepoOwner;
+                        replacement.Name = repoManager.RepoName;
+                        replacement.Url = repoManager.RepoUrl;
+                    }
+                    toBeSaved.AddRange(replacements);
                 }
             }
 
             if (cachedButNotAnalyzed.Any())
             {
                 // 2b) Analyze this new stuff
+                var now = clock.DateTimeOffsetUtcNow();
                 var newPullRequestMetrics = cachedButNotAnalyzed
                     .Select(nbr => cachedPullRequestByNumber[nbr])
                     .Select(prAnalyzer.CalculatePullRequestMetrics)
                     .ToList();
-                var newRepoMetric = repoAnalyzer.CalculateRepositoryMetrics(newPullRequestMetrics);
-                var now = clock.DateTimeOffsetUtcNow();
-                newRepoMetric.CreatedAt = now;    // Just in case there's drift
-                newRepoMetric.UpdatedAt = now;
-                newRepoMetric.Scorers = prAnalyzer.Scorers.ToHashSet();
-                newRepoMetric.Owner = repoManager.RepoOwner;
-                newRepoMetric.Name = repoManager.RepoName;
-                newRepoMetric.Url = repoManager.RepoUrl;
-                toBeSaved.Add(newRepoMetric);
+                var newRepoMetrics = repoAnalyzer.CalculateRepositoryMetricsOverTime(newPullRequestMetrics);
+                var prAnalyzers = prAnalyzer.Scorers.ToHashSet();
+                foreach (var newRepoMetric in newRepoMetrics)
+                {
+                    newRepoMetric.CreatedAt = now;
+                    newRepoMetric.UpdatedAt = now;
+                    newRepoMetric.Scorers = prAnalyzers;
+                    newRepoMetric.Owner = repoManager.RepoOwner;
+                    newRepoMetric.Name = repoManager.RepoName;
+                    newRepoMetric.Url = repoManager.RepoUrl;
+                }
+                
+                toBeSaved.AddRange(newRepoMetrics);
             }
             
             // 1c) Overwrite the old metric snapshots
             // 2c) Write down the new snapshot
-            var saveTasks = toBeSaved
-                .Select(analysisManager.SaveAsync)
-                .ToList();
-            await Task.WhenAll(saveTasks);
-
+            await analysisManager.SaveAsync(toBeSaved);
             return worker;
         }
 
@@ -167,18 +174,20 @@ namespace RepoMan.Repository
             _logger.LogInformation($"{Name} repository analysis starting for {newPrs.Count:N0} pull requests");
             analysisTimer = Stopwatch.StartNew();
 
-            var repoAnalysis = _repoAnalyzer.CalculateRepositoryMetrics(prAnalysis);
-            repoAnalysis.Owner = _repoManager.RepoOwner;
-            repoAnalysis.Name = _repoManager.RepoName;
-            repoAnalysis.Url = _repoManager.RepoUrl;
-            repoAnalysis.CreatedAt = now;
-            repoAnalysis.UpdatedAt = now;
-            repoAnalysis.Scorers = _prAnalyzer.Scorers.ToHashSet();
-            
+            var repoSnapshots = _repoAnalyzer.CalculateRepositoryMetricsOverTime(prAnalysis);
+            foreach (var repoAnalysis in repoSnapshots)
+            {
+                repoAnalysis.Owner = _repoManager.RepoOwner;
+                repoAnalysis.Name = _repoManager.RepoName;
+                repoAnalysis.Url = _repoManager.RepoUrl;
+                repoAnalysis.CreatedAt = now;
+                repoAnalysis.UpdatedAt = now;
+                repoAnalysis.Scorers = _prAnalyzer.Scorers.ToHashSet();
+            }
             analysisTimer.Stop();
             _logger.LogInformation($"{Name} repository analysis completed for {newPrs.Count:N0} pull requests in {analysisTimer.Elapsed.ToMicroseconds():N0} microseconds");
 
-            await _analysisManager.SaveAsync(repoAnalysis);
+            await _analysisManager.SaveAsync(repoSnapshots);
 
             timer.Stop();
             _logger.LogInformation($"{Name} work loop completed in {timer.ElapsedMilliseconds:N0}ms");

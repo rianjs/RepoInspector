@@ -53,23 +53,36 @@ namespace RepoMan.IO
         private string GetPathToRepoDataFiles(string repoOwner, string repoName)
             => Path.Combine(_cacheParentDirectory, repoOwner, repoName);
 
-        public async Task SaveAsync(RepositoryMetrics repoAnalysis)
+        public async Task SaveAsync(List<MetricSnapshot> metricSnapshots)
         {
-            if (repoAnalysis is null)
+            if (metricSnapshots is null || metricSnapshots.Count < 1)
             {
-                throw new ArgumentNullException(nameof(repoAnalysis));
+                return;
             }
             
-            var parentDirectory = GetPathToRepoDataFiles(repoAnalysis.Owner, repoAnalysis.Name);
+            var repoOwner = metricSnapshots.First().Owner;
+            var repoName = metricSnapshots.First().Name;
+            
+            var parentDirectory = GetPathToRepoDataFiles(repoOwner, repoName);
             _fs.DirectoryCreateDirectory(parentDirectory);
 
-            var normalizedTimestamp = GetNormalizedTimestamp(repoAnalysis.CreatedAt);
-            var fullPath = Path.Combine(parentDirectory, $"{normalizedTimestamp}{_analysisSuffix}");
-            var json = JsonConvert.SerializeObject(repoAnalysis, _jsonSerializerSettings);
-            await _fs.FileWriteAllTextAsync(fullPath, json);
+            var saveTasks = metricSnapshots
+                .GroupBy(s => s.Date.Date)
+                // Have it throw, just in case the user hasn't aggregated their stats by date:
+                .Select(dateGroup => dateGroup.Single())
+                .Select(s =>
+                {
+                    var normalizedTimestamp = GetNormalizedTimestamp(s.Date.Date);
+                    var fullPath = Path.Combine(parentDirectory, $"{normalizedTimestamp}{_analysisSuffix}");
+                    var json = JsonConvert.SerializeObject(s, _jsonSerializerSettings);
+                    return (fullPath, json);
+                })
+                .Select(t => _fs.FileWriteAllTextAsync(t.fullPath, t.json));
+
+            await Task.WhenAll(saveTasks);
         }
 
-        public async ValueTask<RepositoryMetrics> LoadAsync(string repoOwner, string repoName, DateTimeOffset timestamp)
+        public async ValueTask<MetricSnapshot> LoadAsync(string repoOwner, string repoName, DateTimeOffset timestamp)
         {
             if (string.IsNullOrWhiteSpace(repoOwner))
             {
@@ -85,17 +98,17 @@ namespace RepoMan.IO
             var normalizedTimestamp = GetNormalizedTimestamp(timestamp);
             var fullPath = Path.Combine(parentDirectory, $"{normalizedTimestamp}{_analysisSuffix}");
             var json = await _fs.FileReadAllTextAsync(fullPath);
-            var snapshot = JsonConvert.DeserializeObject<RepositoryMetrics>(json, _jsonSerializerSettings);
+            var snapshot = JsonConvert.DeserializeObject<MetricSnapshot>(json, _jsonSerializerSettings);
             return snapshot;
         }
 
         private string GetNormalizedTimestamp(DateTimeOffset timestamp)
         {
             var asUtc = timestamp.UtcDateTime;
-            return $"{asUtc:u}".Replace(" ", "T").Replace(":", "-");
+            return $"{asUtc:yyyy-MM-dd}";
         }
 
-        public async ValueTask<List<RepositoryMetrics>> LoadHistoryAsync(string repoOwner, string repoName)
+        public async ValueTask<List<MetricSnapshot>> LoadHistoryAsync(string repoOwner, string repoName)
         {
             if (string.IsNullOrWhiteSpace(repoOwner))
             {
@@ -120,25 +133,22 @@ namespace RepoMan.IO
                 return null;
             }
 
+            if (matches.Length < 1)
+            {
+                return new List<MetricSnapshot>();
+            }
+
             var readMatches = matches
-                .Select(async p =>
-                    new {
-                        Path = p,
-                        Contents = await _fs.FileReadAllTextAsync(p),
-                    })
+                .Select(async p => await _fs.FileReadAllTextAsync(p))
                 .ToList();
             await Task.WhenAll(readMatches);
 
             var deserialized = readMatches
                 .Select(t => t.Result)
-                .Select(kvp => new
-                {
-                    kvp.Path,
-                    Metrics = JsonConvert.DeserializeObject<RepositoryMetrics>(kvp.Contents, _jsonSerializerSettings),
-                })
-                .ToDictionary(kvp => kvp.Path, kvp => kvp.Metrics);
+                .Select(s => JsonConvert.DeserializeObject<MetricSnapshot>(s, _jsonSerializerSettings))
+                .ToList();
 
-            return deserialized.Values.ToList();
+            return deserialized;
         }
     }
 }
