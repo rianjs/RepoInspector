@@ -99,6 +99,7 @@ namespace RepoMan.Repository
             {
                 var now = clock.DateTimeOffsetUtcNow();
 
+                var scorers = prAnalyzer.Scorers.ToHashSet();
                 foreach (var originalMetric in previouslyComputedButHasChanged)
                 {
                     var prMetrics = originalMetric.PullRequestMetrics
@@ -112,7 +113,7 @@ namespace RepoMan.Repository
                     {
                         replacement.CreatedAt = originalMetric.CreatedAt;
                         replacement.UpdatedAt = now;
-                        replacement.Scorers = prAnalyzer.Scorers.ToHashSet();
+                        replacement.Scorers = scorers;
                         replacement.Owner = repoManager.RepoOwner;
                         replacement.Name = repoManager.RepoName;
                         replacement.Url = repoManager.RepoUrl;
