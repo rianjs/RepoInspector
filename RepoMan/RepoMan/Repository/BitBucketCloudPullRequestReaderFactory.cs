@@ -44,7 +44,8 @@ namespace RepoMan.Repository
             _messageHandler = new SocketsHttpHandler
             {
                 PooledConnectionLifetime = httpConnectionLifespan,
-                AutomaticDecompression = DecompressionMethods.All,
+                // TODO: Convert this to .All when we can upgrade to .NET 5+
+                AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip,
             };
             _clientsByApiKey = new Dictionary<BitBucketCloudLogin, HttpClient>();
         }

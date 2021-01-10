@@ -21,7 +21,7 @@ namespace RepoMan.Repository
         private readonly IClock _clock;
         private readonly ILogger _logger;
         
-        public RepoWorker(
+        private RepoWorker(
             IRepoManager repoManager,
             string workerName,
             IPullRequestAnalyzer prAnalyzer,
