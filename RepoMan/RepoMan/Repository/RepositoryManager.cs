@@ -284,9 +284,6 @@ namespace RepoMan.Repository
             }
         }
         
-        /// <summary>
-        /// </summary>
-        /// <param name="prNumber"></param>
         /// <returns>Null if the pull request number is not found</returns>
         public async ValueTask<IList<PullRequest>> GetPullRequestsByNumber(IEnumerable<int> prNumbers)
         {

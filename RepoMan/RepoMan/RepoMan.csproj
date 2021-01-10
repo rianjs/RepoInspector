@@ -3,6 +3,26 @@
     <PropertyGroup>
         <TargetFramework>netcoreapp2.1</TargetFramework>
         <LangVersion>8</LangVersion>
+        <PackageVersion>0.1.0</PackageVersion>
+        <Title>RepoMan</Title>
+        <Authors>Rian Stockbower;Bojan Rajkovic;Nicholas Pirollo</Authors>
+        <Description>A very opinionated library to do pull request analysis around commenting behaviors, approvals, etc.</Description>
+        <PackageProjectUrl>https://github.com/rianjs/RepoMan</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/rianjs/RepoMan/blob/main/LICENSE</PackageLicenseUrl>
+        <RepositoryUrl>https://github.com/rianjs/RepoMan</RepositoryUrl>
+        <PackageReleaseNotes>https://github.com/rianjs/RepoMan/blob/master/release-notes.md</PackageReleaseNotes>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <DebugSymbols>true</DebugSymbols>
+      <DocumentationFile>bin\Debug\RepoMan.xml</DocumentationFile>
+      <NoWarn>1701;1702;1591;1573</NoWarn>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <DebugSymbols>true</DebugSymbols>
+      <DocumentationFile>bin\Release\RepoMan.xml</DocumentationFile>
+      <NoWarn>1701;1702;1591;1573</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
