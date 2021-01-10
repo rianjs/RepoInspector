@@ -7,7 +7,7 @@ using RepoMan.Records;
 
 namespace RepoMan.Analysis
 {
-    class PullRequestAnalyzer :
+    public class PullRequestAnalyzer :
         IPullRequestAnalyzer
     {
         private readonly Dictionary<string, Scorer> _scorers;

@@ -22,7 +22,7 @@ using RepoMan.IO;
 using RepoMan.Records;
 using RepoMan.Repository;
 
-namespace RepoMan
+namespace RepoMan.Runner
 {
     class Program
     {

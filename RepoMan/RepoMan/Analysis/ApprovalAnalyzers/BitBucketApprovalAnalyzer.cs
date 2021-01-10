@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace RepoMan.Analysis.ApprovalAnalyzers
 {
-    class BitBucketApprovalAnalyzer
+    public class BitBucketApprovalAnalyzer
         : TextMatchingApprovalAnalyzer
     {
         public BitBucketApprovalAnalyzer(

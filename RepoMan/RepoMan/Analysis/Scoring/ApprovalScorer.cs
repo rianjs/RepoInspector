@@ -5,7 +5,7 @@ using RepoMan.Records;
 
 namespace RepoMan.Analysis.Scoring
 {
-    class ApprovalScorer :
+    public class ApprovalScorer :
         PullRequestScorer
     {
         public const string Label = "ApprovalCount";

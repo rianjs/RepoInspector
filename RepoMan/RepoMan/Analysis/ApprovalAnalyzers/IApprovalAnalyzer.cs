@@ -2,7 +2,7 @@ using RepoMan.Records;
 
 namespace RepoMan.Analysis.ApprovalAnalyzers
 {
-    interface IApprovalAnalyzer
+    public interface IApprovalAnalyzer
     {
         /// <summary>
         /// Returns the number of unique approvals using a variety of analysis techniques.

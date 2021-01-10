@@ -2,7 +2,7 @@
 
 namespace RepoMan.Records
 {
-    class PullRequestConstants
+    public class PullRequestConstants
     {
         public IReadOnlyList<string> ExplicitApprovals { get; set; }
         public IReadOnlyList<string> ExplicitNonApprovals { get; set; }

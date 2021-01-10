@@ -6,7 +6,7 @@ namespace RepoMan.Analysis.Scoring
     /// <summary>
     /// You get points for the number of unique commenters
     /// </summary>
-    class UniqueCommenterScorer :
+    public class UniqueCommenterScorer :
         PullRequestScorer
     {
         public const string Label = "UniqueCommenterCount";

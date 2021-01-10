@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace RepoMan.Repository
 {
-    class RepoWorker :
+    public class RepoWorker :
         IWorker
     {
         public string Name { get; }

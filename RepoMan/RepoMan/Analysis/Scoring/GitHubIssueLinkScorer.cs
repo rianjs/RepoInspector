@@ -5,7 +5,7 @@ using RepoMan.Records;
 
 namespace RepoMan.Analysis.Scoring
 {
-    class GitHubIssueLinkScorer :
+    public class GitHubIssueLinkScorer :
         CommentExtractorScorer
     {
         public const string Label = "ReferencedIssueCount";

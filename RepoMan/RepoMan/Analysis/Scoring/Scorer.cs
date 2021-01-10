@@ -43,7 +43,7 @@ namespace RepoMan.Analysis.Scoring
             => !Equals(left, right);
     }
     
-    abstract class PullRequestScorer : Scorer
+    public abstract class PullRequestScorer : Scorer
     {
         public abstract int Count(PullRequest prDetails);
 
@@ -61,7 +61,7 @@ namespace RepoMan.Analysis.Scoring
         }
     }
     
-    abstract class CommentExtractorScorer : PullRequestScorer
+    public abstract class CommentExtractorScorer : PullRequestScorer
     {
         /// <summary>
         /// Returns the matching elements from the specified string

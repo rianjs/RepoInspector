@@ -5,7 +5,7 @@ using RepoMan.Records;
 
 namespace RepoMan.Analysis.Scoring
 {
-    class CodeFenceScorer :
+    public class CodeFenceScorer :
         CommentExtractorScorer
     {
         public const string Label = "CodeFenceCount";

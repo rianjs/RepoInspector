@@ -6,7 +6,7 @@ using RepoMan.Repository;
 
 namespace RepoMan.Analysis.ApprovalAnalyzers
 {
-    abstract class TextMatchingApprovalAnalyzer :
+    public abstract class TextMatchingApprovalAnalyzer :
         IApprovalAnalyzer
     {
         private readonly StringComparison _comparison;

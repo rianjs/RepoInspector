@@ -8,7 +8,7 @@ namespace RepoMan.Analysis.Scoring
     /// request remains open. So if a pull request is open for 2 business days, a score of 40 is returned. If a pull request is open for 7 business days, a
     /// score of -10 is returned.
     /// </summary>
-    class BusinessDaysScorer :
+    public class BusinessDaysScorer :
         PullRequestScorer
     {
         public const string Label = "BusinessDaysOpen";

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace RepoMan.Analysis.ApprovalAnalyzers
 {
-    class GitHubApprovalAnalyzer
+    public class GitHubApprovalAnalyzer
         : TextMatchingApprovalAnalyzer
     {
         public GitHubApprovalAnalyzer(

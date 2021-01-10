@@ -5,7 +5,7 @@ using RepoMan.Records;
 
 namespace RepoMan.Analysis.Scoring
 {
-    class CodeFragmentScorer :
+    public class CodeFragmentScorer :
         CommentExtractorScorer
     {
         public const string Label = "CodeFragmentCount";

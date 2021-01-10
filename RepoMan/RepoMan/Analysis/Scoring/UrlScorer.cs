@@ -5,7 +5,7 @@ using RepoMan.Records;
 
 namespace RepoMan.Analysis.Scoring
 {
-    class UrlScorer :
+    public class UrlScorer :
         CommentExtractorScorer
     {
         public const string Label = "UrlCount";

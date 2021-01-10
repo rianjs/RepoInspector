@@ -5,7 +5,7 @@ using RepoMan.Records;
 
 namespace RepoMan.Analysis.Scoring
 {
-    class WordCountScorer :
+    public class WordCountScorer :
         PullRequestScorer
     {
         public const string Label = "WordCount";
