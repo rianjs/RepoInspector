@@ -309,6 +309,12 @@ namespace RepoMan.Repository
                     Submitter = Submitter.ToUser(),
                     OpenedAt = CreatedAt,
                     UpdatedAt = UpdatedAt,
+                    
+                    // BitBucket does not have a timestamp associated with closure. We use the time a PR was closed to group pull request into day-based
+                    // aggregates. We never overwrite ClosedAt, but we do overwrite UpdatedAt in the event that Scorer configuration changes, among other things
+                    // TODO: at some point when we do a C# 9 upgrade, make ClosedAt an init-only property so no one accidentally overwrites the value and
+                    // TODO: messes up their aggregations
+                    ClosedAt = UpdatedAt,
                     Body = Summary.Raw.Trim(),
                 };
                 return pr;

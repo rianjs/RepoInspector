@@ -23,7 +23,6 @@ namespace RepoMan.Records
             User = Submitter,
         };
         
-        
         /// <summary>
         /// Open, closed, merged, etc.
         /// </summary>

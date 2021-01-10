@@ -1,7 +1,5 @@
 using System.Collections.Generic;
-using RepoMan.Analysis.Scoring;
 using RepoMan.Records;
-using RepoMan.Repository;
 
 namespace RepoMan.Analysis
 {
@@ -11,7 +9,6 @@ namespace RepoMan.Analysis
     /// </summary>
     public interface IRepositoryAnalyzer
     {
-        RepositoryMetrics CalculateRepositoryMetrics(IList<PullRequestMetrics> prMetrics);
-        RepositoryMetrics CalculateRepositoryMetrics(IList<PullRequestMetrics> prMetrics, IRepoManager repoManager, IEnumerable<Scorer> scorers);
+        List<MetricSnapshot> CalculateRepositoryMetricsOverTime(IList<PullRequestMetrics> prMetrics);
     }
 }

@@ -5,11 +5,20 @@ using RepoMan.Analysis.Scoring;
 
 namespace RepoMan.Records
 {
-    public class RepositoryMetrics
+    /// <summary>
+    /// MetricSnapshots are intended to be daily summaries of pull request and commit activity that occurred on a specific date. 
+    /// </summary>
+    public class MetricSnapshot
     {
         public string Owner { get; set; }
         public string Name { get; set; }
         public string Url { get; set; }
+        
+        /// <summary>
+        /// The date that this metrics snapshot represents.
+        /// </summary>
+        public DateTimeOffset Date { get; set; }
+        
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset UpdatedAt { get; set; }
         public int PullRequestCount => PullRequestMetrics?.Count ?? 0;
