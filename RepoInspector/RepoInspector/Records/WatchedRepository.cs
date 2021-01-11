@@ -1,10 +1,12 @@
+using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using RepoInspector.Repository;
 
 namespace RepoInspector.Records
 {
-    public class WatchedRepository
+    public class WatchedRepository :
+        IEquatable<WatchedRepository>
     {
         /// <summary>
         /// Some git providers require a login along with a bearer token. Some don't.
@@ -46,5 +48,42 @@ namespace RepoInspector.Records
         /// Optional repository description.
         /// </summary>
         public string Description { get; set; }
+
+        public bool Equals(WatchedRepository other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return string.Equals(Login, other.Login, StringComparison.Ordinal)
+                && string.Equals(ApiToken, other.ApiToken, StringComparison.Ordinal)
+                && RepositoryKind == other.RepositoryKind
+                && string.Equals(Url, other.Url, StringComparison.Ordinal)
+                && string.Equals(Owner, other.Owner, StringComparison.Ordinal)
+                && string.Equals(Name, other.Name, StringComparison.Ordinal);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj.GetType() == GetType() && Equals((WatchedRepository) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            var hashCode = new HashCode();
+            hashCode.Add(Login, StringComparer.Ordinal);
+            hashCode.Add(ApiToken, StringComparer.Ordinal);
+            hashCode.Add((int) RepositoryKind);
+            hashCode.Add(Url, StringComparer.Ordinal);
+            hashCode.Add(Owner, StringComparer.Ordinal);
+            hashCode.Add(Name, StringComparer.Ordinal);
+            return hashCode.ToHashCode();
+        }
+
+        public static bool operator ==(WatchedRepository left, WatchedRepository right)
+            => Equals(left, right);
+
+        public static bool operator !=(WatchedRepository left, WatchedRepository right)
+            => !Equals(left, right);
     }
 }
