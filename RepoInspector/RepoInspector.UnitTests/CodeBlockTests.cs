@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Markdig;
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
 using RepoInspector.Analysis.Scoring;
@@ -8,8 +9,8 @@ namespace RepoInspector.UnitTests
 {
     public class CodeBlockTests
     {
-        private static readonly CodeFragmentScorer _fragmentCounter = new CodeFragmentScorer();
-        private static readonly CodeFenceScorer _fenceCounter = new CodeFenceScorer();
+        private static readonly CodeFragmentScorer _fragmentCounter = new(new MarkdownPipelineBuilder().Build());
+        private static readonly CodeFenceScorer _fenceCounter = new(new MarkdownPipelineBuilder().Build());
         const string s = "```this is not a code block``` but it is a code fragment, as is `this`!";
 
         [Test, TestCaseSource(nameof(CodeFenceTestCases))]

@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
+using Markdig;
+using Markdig.Syntax;
 using RepoInspector.Records;
 
 namespace RepoInspector.Analysis.Scoring
@@ -11,12 +13,13 @@ namespace RepoInspector.Analysis.Scoring
         public const string Label = "CodeFenceCount";
         public override string Attribute => Label;
         public override double ScoreMultiplier => 10;
-        
-        // Be very careful when messing with this -- it wasn't lifted off StackOverflow or whatever, because the SO implementations are incomplete and/or
-        // wrong at the edges. I went to GH, and tried dumb things to see how they were rendered, and then replicated the business rules here, and in the unit
-        // tests.
-        // You can see a lot of my testing here: https://github.com/rianjs/RepoMan/issues/12
-        private static readonly Regex _codeFence = new Regex(@"^```[ ]*[\w]*[ ]*\n[\s\S]*?\n```", RegexOptions.Compiled | RegexOptions.Multiline);
+
+        private readonly MarkdownPipeline _markdownPipeline;
+
+        public CodeFenceScorer(MarkdownPipeline markdownPipeline)
+        {
+            _markdownPipeline = markdownPipeline ?? throw new ArgumentNullException(nameof(markdownPipeline));
+        }
 
         public override int Count(PullRequest prDetails)
         {
@@ -30,6 +33,7 @@ namespace RepoInspector.Analysis.Scoring
         public override IEnumerable<string> Extract(string s) =>
             string.IsNullOrWhiteSpace(s)
                 ? Enumerable.Empty<string>()
-                : _codeFence.Matches(s).Select(m => m.Value);
+                // Only select *closed* fenced blocks
+                : Markdown.Parse(s, _markdownPipeline).OfType<FencedCodeBlock>().Where(fcb => !fcb.IsOpen).Select(fcb => fcb.Lines.ToString());
     }
 }
