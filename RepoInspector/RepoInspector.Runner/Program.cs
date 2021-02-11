@@ -101,8 +101,6 @@ namespace RepoInspector.Runner
 
             var serviceProvider = serviceCollection.BuildServiceProvider();
 
-
-
             // FUTURE: Consider implementing an UpgradeAsync method that can do one-time data transformations/updates on cached data
 
             var repos = configuration.GetSection("WatchedRepositories").Get<List<WatchedRepository>>();

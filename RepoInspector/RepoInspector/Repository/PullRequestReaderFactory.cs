@@ -11,7 +11,7 @@ namespace RepoInspector.Repository
         private readonly BitBucketCloudPullRequestReaderFactory _bbReaderFactory;
         private readonly ILogger _logger;
 
-        public PullRequestReaderFactory(GitHubPullRequestReaderFactory ghClientFactory, BitBucketCloudPullRequestReaderFactory bbCloudClientFactory, ILogger logger)
+        public PullRequestReaderFactory(GitHubPullRequestReaderFactory ghClientFactory, BitBucketCloudPullRequestReaderFactory bbCloudClientFactory, ILogger<PullRequestReaderFactory> logger)
         {
             _ghReaderFactory = ghClientFactory ?? throw new ArgumentNullException(nameof(ghClientFactory));
             _bbReaderFactory = bbCloudClientFactory ?? throw new ArgumentNullException(nameof(bbCloudClientFactory));

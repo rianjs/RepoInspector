@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Options;
 using Octokit;
 using RepoInspector.Analysis.Normalization;
 using RepoInspector.Records;
@@ -13,10 +14,9 @@ namespace RepoInspector.Repository
         private readonly INormalizer _bodyNormalizer;
         private readonly Dictionary<string, GitHubClient> _clientsByApiKey;
         
-        public GitHubPullRequestReaderFactory(string productHeaderValue, INormalizer bodyNormalizer)
+        public GitHubPullRequestReaderFactory(IOptionsSnapshot<RepoInspectorOptions> optionsSnapshot, INormalizer bodyNormalizer)
         {
-            if (string.IsNullOrWhiteSpace(productHeaderValue)) throw new ArgumentNullException(nameof(productHeaderValue));
-            _productHeaderValue = productHeaderValue;
+            _productHeaderValue = optionsSnapshot.Value.GitHubProductHeader;
             _bodyNormalizer = bodyNormalizer ?? throw new ArgumentNullException(nameof(bodyNormalizer));
             _clientsByApiKey = new Dictionary<string, GitHubClient>(StringComparer.Ordinal);
         }

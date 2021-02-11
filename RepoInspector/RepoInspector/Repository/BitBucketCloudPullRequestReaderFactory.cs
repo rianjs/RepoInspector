@@ -29,7 +29,7 @@ namespace RepoInspector.Repository
         /// <param name="jsonSerializerSettings"></param>
         /// <param name="logger"></param>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public BitBucketCloudPullRequestReaderFactory(IClock clock, JsonSerializerSettings jsonSerializerSettings, IOptionsSnapshot<RepoInspectorOptions> optionsSnapshot, ILogger logger)
+        public BitBucketCloudPullRequestReaderFactory(IClock clock, JsonSerializerSettings jsonSerializerSettings, IOptionsSnapshot<RepoInspectorOptions> optionsSnapshot, ILogger<BitBucketCloudPullRequestReader> logger)
         {
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             _jsonSerializerSettings = jsonSerializerSettings ?? throw new ArgumentNullException(nameof(jsonSerializerSettings));

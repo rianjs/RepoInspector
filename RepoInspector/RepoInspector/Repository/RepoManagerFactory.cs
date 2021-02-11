@@ -15,7 +15,7 @@ namespace RepoInspector.Repository
         private readonly TimeSpan _prApiDosBuffer;
         private readonly ILogger _logger;
 
-        public RepoManagerFactory(IPullRequestReaderFactory prReaderFactory, IPullRequestCacheManager cacheManager, IOptionsSnapshot<RepoInspectorOptions> optionsSnapshot, ILogger logger)
+        public RepoManagerFactory(IPullRequestReaderFactory prReaderFactory, IPullRequestCacheManager cacheManager, IOptionsSnapshot<RepoInspectorOptions> optionsSnapshot, ILogger<RepoManagerFactory> logger)
         {
             _prReaderFactory = prReaderFactory ?? throw new ArgumentNullException(nameof(prReaderFactory));
             _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
