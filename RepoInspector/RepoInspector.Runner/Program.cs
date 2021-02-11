@@ -28,7 +28,7 @@ namespace RepoInspector.Runner
 
         private static async Task Main()
         {
-            string configPath = Environment.GetEnvironmentVariable("REPO_INSPECTOR_CONFIG_PATH") ?? Path.Combine(Environment.CurrentDirectory, "..", "scratch", "repoman-config.json");
+            string configPath = Environment.GetEnvironmentVariable("REPO_INSPECTOR_CONFIG_PATH") ?? Path.Combine(Environment.CurrentDirectory, "..", "..", "scratch", "repoman-config.json");
             var configuration = new ConfigurationBuilder()
                 .AddEnvironmentVariables()
                 .AddJsonFile(configPath, false, true)
