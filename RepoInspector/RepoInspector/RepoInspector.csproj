@@ -34,6 +34,7 @@
       <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
       <PackageReference Include="Microsoft.Extensions.Options" Version="5.0.0" />
       <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="5.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="5.0.0" />
       <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
       <PackageReference Include="Octokit" Version="0.48.0" />
       <PackageReference Include="System.Collections.Immutable" Version="5.0.0" />

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RepoInspector.Records;
 
@@ -12,31 +13,24 @@ namespace RepoInspector.IO
         IPullRequestCacheManager,
         IAnalysisManager
     {
+        private const string PullRequestDetails = "pull-requests.json";
+        private const string AnalysisSuffix = "-analysis.json";
+
         private readonly IFilesystem _fs;
         private readonly string _cacheParentDirectory;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
-        private const string _pullRequestDetails = "pull-requests.json";
-        private const string _analysisSuffix = "-analysis.json";
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="fs"></param>
-        /// <param name="pathToCache">The directory that contains the cache files</param>
-        /// <param name="jsonSerializerSettings"></param>
-        public FilesystemDataProvider(IFilesystem fs, string pathToCache, JsonSerializerSettings jsonSerializerSettings)
+        public FilesystemDataProvider(IFilesystem fs, IOptionsSnapshot<RepoInspectorOptions> optionsSnapshot, JsonSerializerSettings jsonSerializerSettings)
         {
             _fs = fs ?? throw new ArgumentNullException(nameof(fs));
-            _cacheParentDirectory = string.IsNullOrWhiteSpace(pathToCache)
-                ? throw new ArgumentNullException(nameof(pathToCache))
-                : pathToCache;
+            _cacheParentDirectory = optionsSnapshot.Value.CachePath;
             _jsonSerializerSettings = jsonSerializerSettings ?? throw new ArgumentNullException(nameof(jsonSerializerSettings));
         }
 
         public async ValueTask SaveAsync(IList<PullRequest> prDetails, string repoOwner, string repoName)
         {
             var parentDirectory = GetPathToRepoDataFiles(repoOwner, repoName);
-            var path = Path.Combine(parentDirectory, _pullRequestDetails);
+            var path = Path.Combine(parentDirectory, PullRequestDetails);
             var json = JsonConvert.SerializeObject(prDetails, _jsonSerializerSettings);
             _fs.DirectoryCreateDirectory(parentDirectory);
             await _fs.FileWriteAllTextAsync(path, json);
@@ -44,7 +38,7 @@ namespace RepoInspector.IO
 
         public async ValueTask<IList<PullRequest>> LoadAsync(string repoOwner, string repoName)
         {
-            var path = Path.Combine(GetPathToRepoDataFiles(repoOwner, repoName), _pullRequestDetails);
+            var path = Path.Combine(GetPathToRepoDataFiles(repoOwner, repoName), PullRequestDetails);
             var json = await _fs.FileReadAllTextAsync(path);
             var initialized = JsonConvert.DeserializeObject<List<PullRequest>>(json, _jsonSerializerSettings);
             return initialized;
@@ -73,7 +67,7 @@ namespace RepoInspector.IO
                 .Select(s =>
                 {
                     var normalizedTimestamp = GetNormalizedTimestamp(s.Date.Date);
-                    var fullPath = Path.Combine(parentDirectory, $"{normalizedTimestamp}{_analysisSuffix}");
+                    var fullPath = Path.Combine(parentDirectory, $"{normalizedTimestamp}{AnalysisSuffix}");
                     var json = JsonConvert.SerializeObject(s, _jsonSerializerSettings);
                     return (fullPath, json);
                 })
@@ -96,7 +90,7 @@ namespace RepoInspector.IO
 
             var parentDirectory = GetPathToRepoDataFiles(repoOwner, repoName);
             var normalizedTimestamp = GetNormalizedTimestamp(timestamp);
-            var fullPath = Path.Combine(parentDirectory, $"{normalizedTimestamp}{_analysisSuffix}");
+            var fullPath = Path.Combine(parentDirectory, $"{normalizedTimestamp}{AnalysisSuffix}");
             var json = await _fs.FileReadAllTextAsync(fullPath);
             var snapshot = JsonConvert.DeserializeObject<MetricSnapshot>(json, _jsonSerializerSettings);
             return snapshot;
@@ -120,7 +114,7 @@ namespace RepoInspector.IO
                 throw new ArgumentNullException(nameof(repoName));
             }
             
-            const string searchPattern = "*" + _analysisSuffix;
+            const string searchPattern = "*" + AnalysisSuffix;
             var searchPath = GetPathToRepoDataFiles(repoOwner, repoName);
             string[] matches;
             try

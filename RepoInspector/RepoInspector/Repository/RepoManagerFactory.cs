@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RepoInspector.IO;
 using RepoInspector.Records;
 
@@ -14,13 +15,11 @@ namespace RepoInspector.Repository
         private readonly TimeSpan _prApiDosBuffer;
         private readonly ILogger _logger;
 
-        public RepoManagerFactory(IPullRequestReaderFactory prReaderFactory, IPullRequestCacheManager cacheManager, TimeSpan prApiDosBuffer, ILogger logger)
+        public RepoManagerFactory(IPullRequestReaderFactory prReaderFactory, IPullRequestCacheManager cacheManager, IOptionsSnapshot<RepoInspectorOptions> optionsSnapshot, ILogger logger)
         {
             _prReaderFactory = prReaderFactory ?? throw new ArgumentNullException(nameof(prReaderFactory));
             _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
-            _prApiDosBuffer = prApiDosBuffer < TimeSpan.Zero
-                ? throw new ArgumentOutOfRangeException("TimeSpan must be greater than or equal to zero")
-                : prApiDosBuffer;
+            _prApiDosBuffer = optionsSnapshot.Value.DenialOfServiceBuffer;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 

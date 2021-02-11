@@ -14,19 +14,15 @@ namespace RepoInspector.Analysis.ApprovalAnalyzers
         private readonly HashSet<string> _nonApprovalStates;
         private readonly HashSet<string> _approvalTextFragments;
 
-        protected TextMatchingApprovalAnalyzer(
-            IEnumerable<string> approvalStateOptions,
-            IEnumerable<string> noApprovalStateOptions,
-            IEnumerable<string> approvalTextFragments,
-            StringComparison comparison)
+        protected TextMatchingApprovalAnalyzer(PullRequestConstants prConstants, StringComparison comparison)
         {
             _comparison = comparison;
-            _approvalStates = approvalStateOptions?.ToHashSet(StringComparer.FromComparison(_comparison))
-                              ?? throw new ArgumentNullException(nameof(approvalStateOptions));
-            _nonApprovalStates = noApprovalStateOptions?.ToHashSet(StringComparer.FromComparison(_comparison))
-                                 ?? throw new ArgumentNullException(nameof(noApprovalStateOptions));
-            _approvalTextFragments = approvalTextFragments?.ToHashSet(StringComparer.FromComparison(_comparison))
-                                     ?? throw new ArgumentNullException(nameof(approvalTextFragments));
+            _approvalStates = prConstants.ExplicitApprovals?.ToHashSet(StringComparer.FromComparison(_comparison))
+                              ?? throw new ArgumentNullException(nameof(prConstants.ExplicitApprovals));
+            _nonApprovalStates = prConstants.ExplicitNonApprovals?.ToHashSet(StringComparer.FromComparison(_comparison))
+                                 ?? throw new ArgumentNullException(nameof(prConstants.ExplicitNonApprovals));
+            _approvalTextFragments = prConstants.ImplicitApprovals?.ToHashSet(StringComparer.FromComparison(_comparison))
+                                     ?? throw new ArgumentNullException(nameof(prConstants.ImplicitApprovals));
         }
 
         /// <summary>

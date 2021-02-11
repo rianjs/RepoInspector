@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RepoInspector.Records;
 
@@ -26,24 +27,17 @@ namespace RepoInspector.Repository
         /// </summary>
         /// <param name="clock"></param>
         /// <param name="jsonSerializerSettings"></param>
-        /// <param name="httpConnectionLifespan">By default, HttpClients do not pick up DNS changes, but this behavior can be overridden by refreshing the
-        /// connection pool. Values should >= 10 seconds; 120 seconds is a reasonable value.</param>
         /// <param name="logger"></param>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public BitBucketCloudPullRequestReaderFactory(IClock clock, JsonSerializerSettings jsonSerializerSettings, TimeSpan httpConnectionLifespan, ILogger logger)
+        public BitBucketCloudPullRequestReaderFactory(IClock clock, JsonSerializerSettings jsonSerializerSettings, IOptionsSnapshot<RepoInspectorOptions> optionsSnapshot, ILogger logger)
         {
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             _jsonSerializerSettings = jsonSerializerSettings ?? throw new ArgumentNullException(nameof(jsonSerializerSettings));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-            if (httpConnectionLifespan < TimeSpan.FromSeconds(10))
-            {
-                throw new ArgumentOutOfRangeException($"Minimum HTTP connection lifetime should be no less than 10 seconds, was {httpConnectionLifespan.TotalSeconds:N0}");
-            }
-
             _messageHandler = new SocketsHttpHandler
             {
-                PooledConnectionLifetime = httpConnectionLifespan,
+                PooledConnectionLifetime = optionsSnapshot.Value.HttpConnectionLifetime,
                 // TODO: Convert this to .All when we can upgrade to .NET 5+
                 AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip,
             };
