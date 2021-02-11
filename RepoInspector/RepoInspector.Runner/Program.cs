@@ -73,9 +73,7 @@ namespace RepoInspector.Runner
                 .AddSingleton<IClock, Clock>()
                 .AddSingleton<IWordCounter, WordCounter>()
                 .AddSingleton<INormalizer, HtmlCommentStripper>()
-                .AddSingleton(sp => GetKnownScorers(
-                    sp.GetRequiredService<GitHubApprovalAnalyzer>(),
-                    sp.GetRequiredService<IWordCounter>()))
+                .AddSingleton(GetKnownScorers)
                 .AddSingleton<ScorerConverter>()
                 .AddSingleton(sp => GetJsonSerializerSettings(sp.GetRequiredService<IScorerFactory>()))
                 .AddSingleton<IPullRequestCacheManager, FilesystemDataProvider>()
@@ -167,11 +165,11 @@ namespace RepoInspector.Runner
             };
         }
 
-        private static IScorerFactory GetKnownScorers(IApprovalAnalyzer approvalAnalyzer, IWordCounter wc)
+        private static IScorerFactory GetKnownScorers(IServiceProvider sp)
         {
             var scorers = GetDerivedTypes<Scorer>(Assembly.GetAssembly(typeof(Scorer)));
             var scorerInstances = scorers
-                .Select(s => CreateInstance(s, approvalAnalyzer, wc))
+                .Select(s => ActivatorUtilities.GetServiceOrCreateInstance(sp, s))
                 .Cast<Scorer>()
                 .ToDictionary(s => s.Attribute, StringComparer.OrdinalIgnoreCase);
 
@@ -184,17 +182,6 @@ namespace RepoInspector.Runner
             return assembly
                 .GetTypes()
                 .Where(t => t != derivedType && derivedType.IsAssignableFrom(t) && !t.IsAbstract);
-        }
-
-        private static object CreateInstance(Type s, IApprovalAnalyzer approvalAnalyzer, IWordCounter wc)
-        {
-            if (s == typeof(ApprovalScorer)) return Activator.CreateInstance(typeof(ApprovalScorer), approvalAnalyzer);
-
-            if (s == typeof(CommentCountScorer)) return Activator.CreateInstance(typeof(CommentCountScorer), wc);
-
-            if (s == typeof(WordCountScorer)) return Activator.CreateInstance(typeof(WordCountScorer), wc);
-
-            return Activator.CreateInstance(s);
         }
     }
 }
