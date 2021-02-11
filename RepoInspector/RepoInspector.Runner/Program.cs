@@ -101,11 +101,14 @@ namespace RepoInspector.Runner
 
             var serviceProvider = serviceCollection.BuildServiceProvider();
 
+
+
             // FUTURE: Consider implementing an UpgradeAsync method that can do one-time data transformations/updates on cached data
 
             var repos = configuration.GetSection("WatchedRepositories").Get<List<WatchedRepository>>();
+            var repoManagerFactory = serviceProvider.GetRequiredService<IRepoManagerFactory>();
             var repoManagers = repos
-                .Select(r => serviceProvider.GetRequiredService<IRepoManagerFactory>().GetManagerAsync(r, false))
+                .Select(r => repoManagerFactory.GetManagerAsync(r, false))
                 .ToList();
             await Task.WhenAll(repoManagers);
 
@@ -129,17 +132,6 @@ namespace RepoInspector.Runner
                 .Select(l => l.LoopAsync())
                 .ToList();
             await Task.WhenAll(loopServices);
-        }
-
-        private static string GetScratchDirectory()
-        {
-            var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-
-            const int netCoreNestingLevel = 5;
-
-            for (var i = 0; i < netCoreNestingLevel; i++) path = Directory.GetParent(path).FullName;
-
-            return Path.Combine(path, "scratch");
         }
 
         private static JsonSerializerSettings GetJsonSerializerSettings(IScorerFactory scorerFactory)
