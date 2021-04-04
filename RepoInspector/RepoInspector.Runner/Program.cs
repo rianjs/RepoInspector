@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using System.Threading;
 using System.Threading.Tasks;
+using Markdig;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -80,6 +81,8 @@ namespace RepoInspector.Runner
                 .AddSingleton(sp => new FilesystemDataProvider(sp.GetRequiredService<IFilesystem>(), _scratchDir, sp.GetRequiredService<JsonSerializerSettings>()))
                 .AddSingleton<IPullRequestCacheManager>(sp => sp.GetRequiredService<FilesystemDataProvider>())
                 .AddSingleton<IAnalysisManager>(sp => sp.GetRequiredService<FilesystemDataProvider>())
+                // Do this so that we *can* modify our Markdown pipeline later on if we need to.
+                .AddSingleton(new MarkdownPipelineBuilder().Build())
                 // CommentScorers
                 .AddSingleton<UrlScorer>()
                 .AddSingleton<CodeFenceScorer>()
