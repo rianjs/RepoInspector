@@ -19,9 +19,10 @@ using RepoInspector.Analysis;
 using RepoInspector.Analysis.ApprovalAnalyzers;
 using RepoInspector.Analysis.Normalization;
 using RepoInspector.Analysis.Scoring;
-using RepoInspector.IO;
+using RepoInspector.Persistence;
 using RepoInspector.Records;
 using RepoInspector.Repository;
+using RepoInspector.Runner.IO;
 
 namespace RepoInspector.Runner
 {
@@ -80,9 +81,9 @@ namespace RepoInspector.Runner
                 .AddSingleton(sp => GetDebugJsonSerializerSettings(sp.GetRequiredService<IScorerFactory>()))
                 .AddSingleton(sp => new FilesystemDataProvider(sp.GetRequiredService<IFilesystem>(), _scratchDir, sp.GetRequiredService<JsonSerializerSettings>()))
                 .AddSingleton<IPullRequestCacheManager>(sp => sp.GetRequiredService<FilesystemDataProvider>())
-                .AddSingleton<IAnalysisManager>(sp => sp.GetRequiredService<FilesystemDataProvider>())
                 // Do this so that we *can* modify our Markdown pipeline later on if we need to.
                 .AddSingleton(new MarkdownPipelineBuilder().Build())
+                .AddSingleton<IHistoricalAnalysisManager>(sp => sp.GetRequiredService<FilesystemDataProvider>())
                 // CommentScorers
                 .AddSingleton<UrlScorer>()
                 .AddSingleton<CodeFenceScorer>()
@@ -139,7 +140,7 @@ namespace RepoInspector.Runner
                     repoManager,
                     serviceProvider.GetRequiredService<IPullRequestAnalyzer>(),
                     serviceProvider.GetRequiredService<IRepositoryAnalyzer>(),
-                    serviceProvider.GetRequiredService<IAnalysisManager>(),
+                    serviceProvider.GetRequiredService<IHistoricalAnalysisManager>(),
                     serviceProvider.GetRequiredService<IClock>(),
                     GetLogger<RepoWorker>()))
                 .ToList();

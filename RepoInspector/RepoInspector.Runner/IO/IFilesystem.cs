@@ -1,7 +1,7 @@
 using System.IO;
 using System.Threading.Tasks;
 
-namespace RepoInspector.IO
+namespace RepoInspector.Runner.IO
 {
     public interface IFilesystem
     {

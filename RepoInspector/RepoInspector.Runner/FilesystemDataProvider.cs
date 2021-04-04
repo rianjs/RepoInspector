@@ -4,13 +4,15 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using RepoInspector.Persistence;
 using RepoInspector.Records;
+using RepoInspector.Runner.IO;
 
-namespace RepoInspector.IO
+namespace RepoInspector.Runner
 {
     public class FilesystemDataProvider :
         IPullRequestCacheManager,
-        IAnalysisManager
+        IHistoricalAnalysisManager
     {
         private readonly IFilesystem _fs;
         private readonly string _cacheParentDirectory;

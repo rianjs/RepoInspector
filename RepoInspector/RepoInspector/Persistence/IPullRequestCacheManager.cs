@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using RepoInspector.Records;
 
-namespace RepoInspector.IO
+namespace RepoInspector.Persistence
 {
     public interface IPullRequestCacheManager
     {

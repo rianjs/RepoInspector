@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using RepoInspector.Records;
 
-namespace RepoInspector.IO
+namespace RepoInspector.Persistence
 {
-    public interface IAnalysisManager
+    public interface IHistoricalAnalysisManager
     {
         /// <summary>
         /// When saving snapshots, implementations should use the UpdatedAt property of the repoAnalysis record
