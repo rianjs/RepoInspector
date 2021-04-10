@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using RepoInspector.IO;
+using RepoInspector.Persistence;
 using RepoInspector.Records;
 using PullRequest = RepoInspector.Records.PullRequest;
 

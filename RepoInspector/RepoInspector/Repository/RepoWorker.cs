@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using RepoInspector.Analysis;
-using RepoInspector.IO;
+using RepoInspector.Persistence;
 using RepoInspector.Records;
 
 namespace RepoInspector.Repository
@@ -17,7 +17,7 @@ namespace RepoInspector.Repository
         private readonly IRepoManager _repoManager;
         private readonly IPullRequestAnalyzer _prAnalyzer;
         private readonly IRepositoryAnalyzer _repoAnalyzer;
-        private readonly IAnalysisManager _analysisManager;
+        private readonly IHistoricalAnalysisManager _analysisManager;
         private readonly IClock _clock;
         private readonly ILogger _logger;
         
@@ -26,7 +26,7 @@ namespace RepoInspector.Repository
             string workerName,
             IPullRequestAnalyzer prAnalyzer,
             IRepositoryAnalyzer repoAnalyzer,
-            IAnalysisManager analysisManager,
+            IHistoricalAnalysisManager analysisManager,
             IClock clock,
             ILogger logger)
         {
@@ -43,7 +43,7 @@ namespace RepoInspector.Repository
             IRepoManager repoManager,
             IPullRequestAnalyzer prAnalyzer,
             IRepositoryAnalyzer repoAnalyzer,
-            IAnalysisManager analysisManager,
+            IHistoricalAnalysisManager analysisManager,
             IClock clock,
             ILogger logger)
         {
