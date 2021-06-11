@@ -39,7 +39,15 @@ namespace RepoInspector.Analysis.Scoring
                 bDays--;
             }
 
-            return (int) bDays;
+            // There are cases where this algorithm generates a negative number.
+            // One such case is:
+            // - Open = 4/25/2020 5:14:22 PM +00:00 (Saturday)
+            // - Close = 4/27/2020 4:27:34 PM +00:00 (Monday)
+            // So just constrain it to 0
+            var asInt = (int) bDays;
+            return asInt <= 0
+                ? 0
+                : asInt;
         }
 
         public override Score GetScore(PullRequest prDetails)
